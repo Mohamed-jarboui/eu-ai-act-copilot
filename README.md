@@ -13,6 +13,9 @@ make install            # uv sync
 cp .env.example .env    # then add GEMINI_API_KEY and/or GROQ_API_KEY
 make lint               # ruff check + format check
 make test               # pytest (no network, fake providers)
+make ingest             # parse data/raw into data/processed/corpus.jsonl (downloads missing files)
 ```
+
+Corpus format, sources, licence and limitations: [docs/data-card.md](docs/data-card.md).
 
 To run a script with your keys loaded: `uv run --env-file .env python your_script.py`.
