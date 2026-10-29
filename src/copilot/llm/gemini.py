@@ -11,6 +11,7 @@ from google.genai import types
 
 from copilot.llm.base import (
     Embedding,
+    EmbedTask,
     Generation,
     ProviderError,
     ServerError,
@@ -21,10 +22,15 @@ from copilot.llm.base import (
 # Overridable via the constructor. Verify against the providers' current model lists.
 DEFAULT_MODELS: dict[Tier, str] = {"small": "gemini-2.5-flash-lite", "large": "gemini-2.5-flash"}
 DEFAULT_EMBED_MODEL = "gemini-embedding-001"
+_TASK_TYPES: dict[EmbedTask, str] = {"document": "RETRIEVAL_DOCUMENT", "query": "RETRIEVAL_QUERY"}
 
 
 class GeminiProvider:
     name = "gemini"
+
+    def available_models(self) -> list[str]:
+        """Model names this key can use (a live call), to check the configured names exist."""
+        return [m.name.removeprefix("models/") for m in self._client.models.list() if m.name]
 
     def __init__(
         self,
@@ -69,9 +75,16 @@ class GeminiProvider:
             output_tokens=meta.candidates_token_count if meta else None,
         )
 
-    def embed(self, texts: list[str]) -> Embedding:
+    def embed(
+        self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None
+    ) -> Embedding:
+        config = types.EmbedContentConfig(
+            task_type=_TASK_TYPES[task], output_dimensionality=dimensions
+        )
         try:
-            response = self._client.models.embed_content(model=self._embed_model, contents=texts)
+            response = self._client.models.embed_content(
+                model=self._embed_model, contents=texts, config=config
+            )
         except Exception as exc:
             raise _translate(exc) from exc
         return Embedding(
