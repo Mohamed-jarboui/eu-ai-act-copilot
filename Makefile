@@ -1,4 +1,4 @@
-.PHONY: install lint test ingest eval-retrieval
+.PHONY: install lint test ingest eval-retrieval serve examples calibrate
 
 install:
 	uv sync
@@ -15,3 +15,12 @@ ingest:
 
 eval-retrieval:
 	uv run --env-file .env python evals/run_retrieval.py
+
+serve:
+	uv run --env-file .env python -m copilot.api
+
+examples:
+	uv run --env-file .env python -m copilot.answer.examples
+
+calibrate:
+	uv run python -m copilot.answer.calibrate

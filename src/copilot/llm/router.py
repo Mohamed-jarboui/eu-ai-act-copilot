@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import TypeVar
 
 from copilot.llm.base import (
     AllProvidersFailedError,
+    AuthError,
     Embedding,
     EmbedTask,
     Generation,
+    NotFoundError,
     Provider,
     ProviderError,
     RateLimitError,
     ServerError,
+    StreamEvent,
     Tier,
     UnsupportedOperationError,
     Usage,
@@ -32,16 +35,19 @@ def should_fallback(error: ProviderError) -> bool:
     """Decide whether to move on to the next provider after `error`.
 
     Called once a provider is finished with (its retries are used up, or the error was not
-    retryable). Return True to try the next provider, False to stop and raise.
+    retryable). The question is whether the NEXT provider could plausibly succeed:
+
+    * RateLimitError, ServerError: the problem is on this provider's side -> yes.
+    * NotFoundError: this provider cannot serve the request (a retired model, as happened with
+      gemini-2.5-flash) -> yes; the next provider has its own models.
+    * AuthError: our key for THIS provider is bad, the next provider has its own key -> yes. The
+      cost is silent degradation, so every failed attempt stays in `usage` with its error text and
+      should be monitored rather than hidden.
+    * BadRequestError: the request itself is wrong (and the next provider would likely reject it
+      too) -> no: fail loudly. One known gap: a prompt too long for one model's context window
+      may fit another's.
     """
-    # TODO(me): decide which errors trigger fallback to the next provider.
-    # Hint: ask "would the NEXT provider plausibly succeed with the same request?"
-    #   - RateLimitError / ServerError: the problem is on this provider's side -> usually yes.
-    #   - BadRequestError: the request itself is wrong -> would Groq accept it? Probably not.
-    #   - AuthError: our Gemini key is bad. Groq has its own key... so what is the right call?
-    #     Think about whether failing loudly or degrading silently is better for debugging.
-    # Placeholder below is conservative so the tests can run; replace it with your own logic.
-    return isinstance(error, RateLimitError | ServerError)
+    return isinstance(error, RateLimitError | ServerError | NotFoundError | AuthError)
 
 
 class FallbackLLM:
@@ -97,6 +103,58 @@ class FallbackLLM:
             )
 
         return self._run(call, usage_of)
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        tier: Tier = "large",
+        temperature: float = 0.0,
+        max_output_tokens: int | None = None,
+    ) -> Iterator[StreamEvent]:
+        """Stream text deltas, then a final event with the totals.
+
+        Retries and fallback apply only until the first event arrives (connection, quota and
+        auth errors surface there). An error after text has started is raised to the caller:
+        switching provider mid-answer would repeat or contradict what was already shown.
+        """
+
+        def call(provider: Provider):
+            if not hasattr(provider, "generate_stream"):
+                raise UnsupportedOperationError("no streaming", provider=provider.name)
+            events = provider.generate_stream(
+                prompt,
+                system=system,
+                tier=tier,
+                temperature=temperature,
+                max_output_tokens=max_output_tokens,
+            )
+            return next(events, None), events  # pulls the first event so early errors raise here
+
+        def usage_of(provider: Provider, result, t: float, err: str | None) -> Usage:
+            return Usage(provider.name, "", "generate", None, None, t, err)
+
+        start = self._clock()
+        first, events = self._run(call, usage_of)
+        index = len(self.usage) - 1  # the record _run just appended for the successful attempt
+        last = first
+        if first is not None:
+            yield first
+        for event in events:
+            last = event
+            yield event
+        if last is not None and last.final is not None:
+            record = self.usage[index]
+            self.usage[index] = Usage(
+                record.provider,
+                last.final.model,
+                "generate",
+                last.final.input_tokens,
+                last.final.output_tokens,
+                self._clock() - start,
+                None,
+            )
 
     def embed(
         self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None

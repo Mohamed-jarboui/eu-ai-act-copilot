@@ -6,6 +6,7 @@ import an SDK and can be tested with plain fakes.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
@@ -36,6 +37,10 @@ class AuthError(ProviderError):
     """HTTP 401/403: missing, invalid or unauthorised key."""
 
 
+class NotFoundError(ProviderError):
+    """HTTP 404: the model or endpoint does not exist for this key (e.g. a retired model)."""
+
+
 class BadRequestError(ProviderError):
     """Other 4xx: the request itself is wrong, so resending it anywhere will not help."""
 
@@ -54,6 +59,8 @@ def error_from_status(status: int | None, message: str, *, provider: str) -> Pro
         return RateLimitError(message, provider=provider)
     if status in (401, 403):
         return AuthError(message, provider=provider)
+    if status == 404:
+        return NotFoundError(message, provider=provider)
     if status is not None and 400 <= status < 500:
         return BadRequestError(message, provider=provider)
     return ServerError(message, provider=provider)
@@ -67,6 +74,14 @@ class Generation:
     model: str
     input_tokens: int | None
     output_tokens: int | None
+
+
+@dataclass(frozen=True)
+class StreamEvent:
+    """One step of a streamed generation: a text delta, then a last event carrying the totals."""
+
+    text: str = ""
+    final: Generation | None = None  # set only on the last event (token counts may be None)
 
 
 @dataclass(frozen=True)
@@ -108,6 +123,16 @@ class Provider(Protocol):
         temperature: float = 0.0,
         max_output_tokens: int | None = None,
     ) -> Generation: ...
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        tier: Tier = "large",
+        temperature: float = 0.0,
+        max_output_tokens: int | None = None,
+    ) -> Iterator[StreamEvent]: ...
 
     def embed(
         self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None

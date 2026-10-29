@@ -19,10 +19,14 @@ class BM25Index:
 
     def search(self, query: str, filters: Filters, k: int = 50) -> list[str]:
         """Chunk ids ranked by BM25 score, best first. Chunks sharing no token are not returned."""
+        return [chunk_id for chunk_id, _ in self.search_scored(query, filters, k)]
+
+    def search_scored(self, query: str, filters: Filters, k: int = 50) -> list[tuple[str, float]]:
+        """Like `search`, with each chunk's BM25 score (not comparable across different queries)."""
         scores = np.asarray(
             self._models[filters.language].get_scores(tokenize(query, filters.language))
         )
         scores = np.where(self.corpus.mask(filters), scores, 0.0)
         order = np.argsort(-scores, kind="stable")[:k]
         chunks = self.corpus.by_language[filters.language]
-        return [chunks[i].id for i in order if scores[i] > 0]
+        return [(chunks[i].id, float(scores[i])) for i in order if scores[i] > 0]

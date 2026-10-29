@@ -1,21 +1,28 @@
 # Learning log
 
-Everything left "for later" in learning mode: the `TODO(me)` pieces and the understanding questions, each with an answer and the reasoning. Try each item yourself first, then compare.
+Everything left "for later" in learning mode: the `TODO(me)` pieces and the understanding questions, each with an answer and the reasoning.
 
-## Open TODO(me) items
+## Status of the TODO(me) items: all implemented
 
-| # | Stage | File | What to implement | Tests that tell you when you're done |
-|---|---|---|---|---|
-| 1 | 0 | `src/copilot/llm/router.py` | `should_fallback(error)`: which errors move on to the next provider | `tests/test_llm_router.py` (add an `AuthError` case) |
-| 2 | 1 | `src/copilot/ingest/refs.py` | `extract_cross_refs(text, lang)`: find "Article 9" / "Annex III" in EN, FR, DE | `tests/test_refs.py` (8 xfail cases: remove each marker as it passes) |
+On 2026-10-29 the owner asked for the `TODO(me)` items to be implemented so the project could be finished and merged, so they are **no longer open**: the code contains the implementations (written by Claude, not by the owner) and no `TODO(me)` markers remain. The sections below stay as study material: for each item, what the function has to do, the reasoning, and the design decisions worth understanding. The useful way to use them now is to read the code, close the file, and try to explain or re-derive each decision.
 
-After finishing #2, run `make ingest` (the corpus stores `refs`, and `test_committed_corpus_is_up_to_date` fails if the committed corpus is stale), then update the "Cross-references" bullet in `docs/data-card.md`.
+| # | Stage | Implemented in | Decision worth understanding |
+|---|---|---|---|
+| 1 | 0 | `llm/router.py` (`should_fallback`), `llm/base.py` | Fall back on rate limit, server error, **not found** and **auth** errors; never on a bad request. A 404 now has its own error type (`NotFoundError`) because a retired model is a provider problem, not a bad request. Falling back on auth errors keeps the service up but can hide a broken key, so failures stay visible in `usage`. |
+| 2 | 1 | `ingest/refs.py` (`extract_cross_refs`) | Lists and ranges are expanded; references to other acts are skipped. The corpus was regenerated with real `refs` in all three languages. |
+| 3-5 | 2 | `retrieve/fusion.py`, `retrieve/metrics.py` | RRF uses ranks, not scores; recall counts each gold id once. The BM25 numbers are reproduced exactly (0.694 / 0.797 / 0.652). |
+| 6 | 3 | `answer/citations.py` (`parse_citation`) | The inverse of `labels.label_for`; every one of the 1092 corpus labels round-trips. Unknown labels return `None` so the sentence is dropped, not guessed. |
+| 7 | 3 | `answer/refusal.py` (`should_refuse`) | **The weakest piece.** English-only cosine threshold 0.65, calibrated on 9 in-scope questions (0.699 to 0.814) and 1 out-of-scope one (0.599). Provisional, because the embedding quota blocked more data. BM25 scores are not used. |
+
+Still needing a human decision: item 7's threshold (add out-of-scope questions, embed them, recalibrate with `python -m copilot.answer.calibrate --embed`; `evals/refusal_v0.jsonl` holds 12 English ones that are not embedded yet).
 
 ---
 
 ## Stage 0: provider layer
 
-### TODO #1: `should_fallback`
+### TODO #1: `should_fallback` (implemented)
+
+*Status: implemented, with `AuthError` and a new `NotFoundError` falling back; tests in `tests/test_llm_router.py`. The text below is the original task description and reasoning.*
 
 **The question to answer:** after a provider is finished with (retries used up, or the error was not retryable), would the *next* provider plausibly succeed with the same request?
 
@@ -70,7 +77,9 @@ Injection makes the tests instant (no real sleeping), deterministic, and able to
 
 ## Stage 1: ingestion
 
-### TODO #2: `extract_cross_refs`
+### TODO #2: `extract_cross_refs` (implemented)
+
+*Status: implemented in `ingest/refs.py` (the version described here); the corpus and the data card are regenerated.*
 
 **Target output** (language-independent, regulation-agnostic): `"art:9"`, `"art:6:2"` (paragraph 2 of Article 6), `"anx:III"`, in order of first appearance, no duplicates.
 
@@ -181,7 +190,7 @@ def extract_cross_refs(text: str, lang: str) -> list[str]:
 
 </details>
 
-**What I measured with this reference implementation** (run once over the corpus built from `data/raw`, in a scratch script; the repository code was not changed):
+**What I measured with this reference implementation** (first in a scratch script, then reproduced exactly by `make ingest` once the implementation was in the repository):
 
 - 23 of 23 hand-written cases pass.
 - Units with at least one reference: EN 773, FR 777, DE 743, each out of 2375 units per language (AI Act and GDPR together).
@@ -191,9 +200,9 @@ def extract_cross_refs(text: str, lang: str) -> list[str]:
 
 **Checklist when you finish**
 
-- [ ] Remove the xfail marker from each case in `tests/test_refs.py` that now passes.
-- [ ] `make ingest`, then commit the regenerated `data/processed/corpus.jsonl`.
-- [ ] Replace the "Cross-references" bullet in `docs/data-card.md` with what your function really covers, with counts from a script run.
+- [x] Remove the xfail marker from each case in `tests/test_refs.py` that now passes.
+- [x] `make ingest`, then commit the regenerated `data/processed/corpus.jsonl`.
+- [x] Replace the "Cross-references" bullet in `docs/data-card.md` with what your function really covers, with counts from a script run.
 
 ### Questions and answers
 
@@ -222,7 +231,7 @@ Skip it (or, better in a later version, record it with its target regulation). R
 
 The first live run embedded all English chunks (1084 distinct texts) and then hit Gemini's free-tier **daily** limit (1000 embedding requests per day, "retry in about 16h"). The only results so far are BM25 on all 37 scored questions (`results/retrieval_bm25_all.json`). To finish, rerun the commands in `evals/README.md` ("Finishing the vector results") once per day, or enable billing on the key (your call). Until then there is no honest answer to "which method wins".
 
-### TODO #3, #4, #5: `rrf_fuse`, `recall_at_k`, `reciprocal_rank`
+### TODO #3, #4, #5: `rrf_fuse`, `recall_at_k`, `reciprocal_rank` (implemented)
 
 | # | File | Formula |
 |---|---|---|
@@ -230,7 +239,7 @@ The first live run embedded all English chunks (1084 distinct texts) and then hi
 | 4 | `src/copilot/retrieve/metrics.py` | `recall@k = |{g in gold : some retrieved r in the top k has is_hit(r, g)}| / |gold|` |
 | 5 | same | `RR = 1 / rank of the first hit` (0 if none); `MRR = mean(RR)` |
 
-How to know you're done: the `mine` cases in `tests/test_retrieve_fusion_metrics.py` stop being xfail (remove the markers), then set `IMPL = "mine"` in `evals/run_retrieval.py` and rerun. **The numbers must not change.** You can already check #4 and #5 against the BM25 run, which used the reference implementation on 37 questions:
+*Status: implemented in `fusion.py` and `metrics.py`, and the evaluation runner uses them (`IMPL = "mine"`). Rerunning the BM25 evaluation with them reproduced exactly the numbers below, which is the check for #4 and #5; #3 has tests with exact expected scores and is only exercised by the hybrid runs.*
 
 | Method | recall@5 | recall@10 | MRR |
 |---|---|---|---|
@@ -239,7 +248,7 @@ How to know you're done: the `mine` cases in `tests/test_retrieve_fusion_metrics
 (`python evals/run_retrieval.py --methods bm25 --tag bm25_all` with your implementation should print exactly these.) #3 can only be checked against the vector runs, but its tests have exact expected scores.
 
 <details>
-<summary>Reference implementations (they live in <code>src/copilot/retrieve/_reference.py</code>; try yours first)</summary>
+<summary>The implementations (now in <code>fusion.py</code> and <code>metrics.py</code>)</summary>
 
 ```python
 def rrf_fuse(rankings, k=60):
@@ -282,3 +291,81 @@ q15 ("how does the regulation define an AI system?") has gold `aiact:art:3`. The
 
 **3. What failed on the first live run, why did waiting not help, and what did the cache buy us?**
 Gemini's free tier has a per-day cap (1000 embedding texts), which is a different limit from the per-minute rate limit the router's backoff is built for. My first embedder retried for about 20 minutes against a limit that resets in about 16 hours. Now it detects the `PerDay` error and stops immediately (`QuotaExhaustedError`, with a test). The disk cache means nothing is embedded twice: the 1084 English embeddings, the 5 query embeddings done so far, and later every rerank score survive the failure, so each daily rerun continues where the last stopped and costs nothing for what is already done. The lesson is to check quotas and plan the cost before a long job, and to make jobs resumable.
+
+---
+
+## Stage 3: answers, API and chat page
+
+### TODO items 6 and 7 (implemented)
+
+| # | File | What it does |
+|---|---|---|
+| 6 | `src/copilot/answer/citations.py` | `parse_citation(label) -> cite id or None`: `"AI Act Art. 6(2)"` becomes `"aiact:art:6:2"` |
+| 7 | `src/copilot/answer/refusal.py` | `should_refuse(evidence) -> bool`: refuse before any model call when retrieval is empty or weak |
+
+*Status: both implemented. `test_every_corpus_label_round_trips` turns every one of the 1092 indexed chunks into its label and back through the parser.*
+
+**Why #7 does not use BM25 scores: BM25 scores cannot tell out-of-scope questions from in-scope ones.** `make calibrate` (no API calls) prints, per gold question, the best BM25 score per query token: in-scope questions (n=37) range from 1.04 to 4.09 (median 1.77); the 3 out-of-scope questions score 0.00, 2.50 and 2.69, right inside that range, because "What is the best GPU for training a large language model?" shares words like "training" and "model" with the AI Act. Cosine similarity of the best vector hit is the better signal, and `refusal.py` uses it for English: `COSINE_MIN = {"en": 0.65}`, set between the lowest of the 9 in-scope English questions whose embeddings were fetched (0.699 to 0.814) and the one out-of-scope question (the GPU question, 0.599). **That is a provisional value resting on 1 negative against 9 positives**, because the bulk embedding quota ran out (it also blocked the 12 extra out-of-scope questions in `evals/refusal_v0.jsonl`). It is deliberately conservative since the model's `NOT_COVERED` answer and the grounding check still follow. French and German are not gated until their vectors exist and the threshold is recalibrated (`python -m copilot.answer.calibrate --embed`).
+
+<details>
+<summary>The implementations (now in <code>citations.py</code> and <code>refusal.py</code>)</summary>
+
+```python
+def parse_citation(label):
+    label = " ".join(label.split())
+    if match := _ARTICLE.match(label):  # "(AI Act|GDPR) Art. N(a)(b)..."
+        regulation = _REGULATION[re.sub(r"\s+", " ", match.group(1).lower())]
+        parts = re.findall(r"\(\s*(\w+)\s*\)", match.group(3))
+        return ":".join([regulation, "art", match.group(2).lower(), *[p.lower() for p in parts]])
+    if match := _ANNEX.match(label):  # "(AI Act|GDPR) Annex III[, Section A][, point 1]"
+        ...  # same idea: regulation, "anx", numeral, optional section and point
+    return None
+
+
+def should_refuse(evidence):
+    if evidence.n_sources == 0:
+        return True
+    if COSINE_MIN is not None and evidence.top_cosine is not None:
+        return evidence.top_cosine < COSINE_MIN
+    return False  # bm25 mode, or gate not calibrated: later safeguards decide
+```
+
+</details>
+
+### Four safeguards, not one
+
+A wrong answer can get through at four places, so there are four layers:
+
+1. **Empty or weak retrieval** (`should_refuse`): no model call at all.
+2. **The model's own `NOT_COVERED`**: the prompt tells it to answer exactly that when the sources do not answer the question. This is what refused the GPU question in the first live test, while BM25 alone would have let it through.
+3. **Citation validation**: a citation that is unparsable or not among the supplied sources removes its sentence without asking anyone.
+4. **The grounding check**: a second cheap model call judges every remaining sentence against the sources it cites; unsupported ones are removed, listed in `removed_sentences`, and `grounded` becomes false. If nothing survives, the answer is a refusal. If the checker itself is down, nothing can be verified: sentences with a valid citation are kept, the rest are removed, and `grounding_check` says `unavailable`.
+
+### What the real runs taught us (all measured on 2026-10-29)
+
+- **Model names go stale, and a model list lies.** `gemini-2.5-flash` and `-flash-lite` were in the list the API returned but answered `404 no longer available to new users`. The defaults are now `gemini-3.6-flash` (answers) and `gemini-3.1-flash-lite` (cheap checks), each tested with a real call. `gemini-3.8-flash`, the one the error message recommended, answered `503 high demand` or hung.
+- **This is your Stage 0 TODO in the wild.** That 404 became a `BadRequestError`, and the placeholder `should_fallback` returns False for it, so the request failed even though Groq was configured and could have answered. Whether a "model not found" belongs with "bad request" (never fall back) or with "this provider cannot serve us" (fall back) is exactly the question the TODO asks.
+- **Timeouts matter.** One test call to `gemini-3.8-flash` hung for minutes because the SDK had no useful default; both providers now have a 60 s timeout, which the router treats as a retryable `ServerError`.
+- **Thinking time dominates latency.** On one prompt (a single test, noisy) the default Gemini setting took 7 to 22 s for about 210 output tokens; `thinking_level="MINIMAL"` gave the same answer in 2.7 s. The answer model uses minimal thinking because it extracts from supplied sources and does not need to reason. Streaming shows the first text early either way.
+- **Groq's free tier caps its large model at 8000 tokens per minute**, which a few of our 2,000-token prompts per minute exceed. The generation chain is now the lite Gemini model first (it answered every test call in 1 to 2 s), the larger Gemini model second, and Groq last, with 30 s timeouts and 3 s backoff so a "try again in 5 s" limit is actually waited out. Which models answered is reported in `usage.models`.
+- **A source cut off silently loses content.** My first limit of 1,500 characters per source dropped five of the eight prohibited practices in Art. 5(1) (4,701 characters). It is 6,000 now.
+
+- **Latency is mostly provider load, not our pipeline.** In the 10 README examples (after the reorder) per-question time was 1.7 to 70 s: five took 4.3 s or less and five took 15 s or more. Asked again minutes later, three of the slow ones took 3.4, 4.1 and 3.4 s (about 2 s generating, 1.5 s checking). I did not isolate the cause of the slow runs; 503 "high demand" and Groq rate-limit waits are the candidates. In the first run, before the reorder, examples took 10 to 87 s.
+- **"Grounded" is not "correct" or "complete".** Example 7 (an employer detecting emotions) is grounded sentence by sentence and cites real articles, yet never states the actual prohibition in Art. 5(1)(f), because BM25 did not retrieve it. The check verifies faithfulness to the sources given, not that the right sources were found. Two examples (the bank loan and the French definition of an AI system) were refused because retrieval missed the right articles, the same misses the Stage 2 BM25 run showed.
+
+### Questions and answers
+
+**1. Why does the system have four layers that can refuse or remove text, and why is a BM25 threshold not one of them?**
+Each layer catches a different failure: retrieval found nothing or something unrelated (cheap, no model call), retrieval found plausible but non-answering text (the model says `NOT_COVERED`), the model cited something it was not given (validation), or the model stated more than the sources say (grounding check). A BM25 threshold does not work because the score depends on the query length and the corpus statistics, and measured on the gold set the out-of-scope questions score inside the in-scope range (per token: 2.50 and 2.69 against 1.04 to 4.09). Cosine similarity has a fixed scale, which is why that gate exists, but it is not calibrated yet.
+
+**2. Why is a citation to "Art. 6" accepted when the source is "Art. 6(2)", but "Art. 6(1)" is rejected, and what does the rule protect against?**
+`supports(cited, source)` accepts equal ids or one containing the other (an ancestor or a descendant). Citing the article when the model was shown one of its paragraphs is a fair summary, and citing a point below a paragraph is fair too, so both are still checked against the source text by the grounding call. Siblings are rejected because a different paragraph was never shown to the model, so a sentence citing it cannot have come from what was supplied: the model is fabricating a plausible-looking reference, which is the most damaging error for a legal assistant. Such sentences are dropped without asking the checker.
+
+**3. Why is the streamed text only a draft, and why does the router fall back only before the first chunk?**
+The grounding check needs the whole answer, so it runs after streaming, and it may remove sentences. The page therefore shows the stream as grey italic text and replaces it with the `final` event, the only verified version. The router can retry or switch provider only until the first event arrives, because after that the user has already seen text: switching mid-answer would repeat or contradict it, so an error at that point is raised and the draft is discarded.
+
+### Open items for tomorrow (the quota resets about 08:00; the evaluation task starts at 08:10)
+
+1. Embed the remaining gold questions (single-text calls kept working after the bulk quota was spent, so this should be possible at any time; if the evaluation job's final query step fails on quota, that is why), then rerun `make calibrate` and `make examples`.
+2. Set the refusal threshold from that data (TODO #7), and add out-of-scope questions to the gold set.
+3. When the evaluation finishes (about three days), check which retrieval method is actually best before treating hybrid as the default.

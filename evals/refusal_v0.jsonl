@@ -1,0 +1,12 @@
+{"id": "r01", "lang": "en", "scope": "none", "kind": "unrelated", "question": "What is the capital of Australia?"}
+{"id": "r02", "lang": "en", "scope": "none", "kind": "unrelated", "question": "How do I bake sourdough bread at home?"}
+{"id": "r03", "lang": "en", "scope": "none", "kind": "unrelated", "question": "Who won the football World Cup in 2018?"}
+{"id": "r04", "lang": "en", "scope": "none", "kind": "unrelated", "question": "What is the best programming language to learn first?"}
+{"id": "r05", "lang": "en", "scope": "none", "kind": "unrelated", "question": "How much tax do I pay on rental income in Spain?"}
+{"id": "r06", "lang": "en", "scope": "none", "kind": "unrelated", "question": "What are the common symptoms of the flu?"}
+{"id": "r07", "lang": "en", "scope": "none", "kind": "adjacent", "question": "What does the US Executive Order on AI require from companies?"}
+{"id": "r08", "lang": "en", "scope": "none", "kind": "adjacent", "question": "How do I train a neural network on my own dataset?"}
+{"id": "r09", "lang": "en", "scope": "none", "kind": "adjacent", "question": "Which cloud provider is cheapest for hosting a language model?"}
+{"id": "r10", "lang": "en", "scope": "none", "kind": "adjacent", "question": "What are the copyright rules for AI-generated images in the UK?"}
+{"id": "r11", "lang": "en", "scope": "none", "kind": "adjacent", "question": "How does the California Consumer Privacy Act define a business?"}
+{"id": "r12", "lang": "en", "scope": "none", "kind": "adjacent", "question": "What is the penalty for breaking the Digital Services Act?"}

@@ -17,11 +17,12 @@ def recall_at_k(ranked: list[str], gold: list[str], k: int) -> float:
 
     A gold id counts once however many retrieved ids hit it (several paragraphs of Article 5 are
     one hit for "aiact:art:5"); a gold id that nothing in the top k hits counts as missed.
-    The benchmark value is the mean over questions (the caller does that).
-
-    TODO(me): implement this (gold is never empty here: out-of-scope questions are skipped).
+    The benchmark value is the mean over questions (the caller does that). `gold` is never empty
+    here: out-of-scope questions are skipped.
     """
-    raise NotImplementedError("TODO(me): implement recall@k (see the formula in the docstring)")
+    top = ranked[:k]
+    found = sum(1 for g in gold if any(is_hit(r, g) for r in top))
+    return found / len(gold)
 
 
 def reciprocal_rank(ranked: list[str], gold: list[str]) -> float:
@@ -34,7 +35,8 @@ def reciprocal_rank(ranked: list[str], gold: list[str]) -> float:
         MRR = mean of RR over the questions
 
     A "hit" is any retrieved id r with is_hit(r, g) for at least one g in gold.
-
-    TODO(me): implement this.
     """
-    raise NotImplementedError("TODO(me): implement reciprocal rank (see the formula above)")
+    for rank, r in enumerate(ranked, start=1):
+        if any(is_hit(r, g) for g in gold):
+            return 1.0 / rank
+    return 0.0
