@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import TypeVar
 
 from copilot.llm.base import (
@@ -15,6 +15,7 @@ from copilot.llm.base import (
     ProviderError,
     RateLimitError,
     ServerError,
+    StreamEvent,
     Tier,
     UnsupportedOperationError,
     Usage,
@@ -97,6 +98,58 @@ class FallbackLLM:
             )
 
         return self._run(call, usage_of)
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        tier: Tier = "large",
+        temperature: float = 0.0,
+        max_output_tokens: int | None = None,
+    ) -> Iterator[StreamEvent]:
+        """Stream text deltas, then a final event with the totals.
+
+        Retries and fallback apply only until the first event arrives (connection, quota and
+        auth errors surface there). An error after text has started is raised to the caller:
+        switching provider mid-answer would repeat or contradict what was already shown.
+        """
+
+        def call(provider: Provider):
+            if not hasattr(provider, "generate_stream"):
+                raise UnsupportedOperationError("no streaming", provider=provider.name)
+            events = provider.generate_stream(
+                prompt,
+                system=system,
+                tier=tier,
+                temperature=temperature,
+                max_output_tokens=max_output_tokens,
+            )
+            return next(events, None), events  # pulls the first event so early errors raise here
+
+        def usage_of(provider: Provider, result, t: float, err: str | None) -> Usage:
+            return Usage(provider.name, "", "generate", None, None, t, err)
+
+        start = self._clock()
+        first, events = self._run(call, usage_of)
+        index = len(self.usage) - 1  # the record _run just appended for the successful attempt
+        last = first
+        if first is not None:
+            yield first
+        for event in events:
+            last = event
+            yield event
+        if last is not None and last.final is not None:
+            record = self.usage[index]
+            self.usage[index] = Usage(
+                record.provider,
+                last.final.model,
+                "generate",
+                last.final.input_tokens,
+                last.final.output_tokens,
+                self._clock() - start,
+                None,
+            )
 
     def embed(
         self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None

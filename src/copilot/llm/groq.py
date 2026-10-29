@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 
 import groq as groq_sdk
 
@@ -12,6 +13,7 @@ from copilot.llm.base import (
     Generation,
     ProviderError,
     ServerError,
+    StreamEvent,
     Tier,
     UnsupportedOperationError,
     error_from_status,
@@ -38,11 +40,13 @@ class GroqProvider:
         *,
         models: dict[Tier, str] | None = None,
         reasoning_effort: str | None = None,
+        timeout_s: float = 60.0,
     ) -> None:
         key = api_key or os.environ.get("GROQ_API_KEY")
         if not key:
             raise ValueError("GROQ_API_KEY is not set")
-        self._client = groq_sdk.Groq(api_key=key, max_retries=0)  # retries are the router's job
+        # retries are the router's job; the timeout stops a stalled call from hanging a request
+        self._client = groq_sdk.Groq(api_key=key, max_retries=0, timeout=timeout_s)
         self._models = models or DEFAULT_MODELS
         # Reasoning models (gpt-oss) spend output tokens thinking; "low" keeps that small.
         self._extra = {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
@@ -77,6 +81,53 @@ class GroqProvider:
             model=model,
             input_tokens=usage.prompt_tokens if usage else None,
             output_tokens=usage.completion_tokens if usage else None,
+        )
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        tier: Tier = "large",
+        temperature: float = 0.0,
+        max_output_tokens: int | None = None,
+    ) -> Iterator[StreamEvent]:
+        model = self._models[tier]
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        parts: list[str] = []
+        usage = None
+        try:
+            stream = self._client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+                stream=True,
+                **self._extra,
+            )
+            for chunk in stream:
+                piece = chunk.choices[0].delta.content if chunk.choices else None
+                if piece:
+                    parts.append(piece)
+                    yield StreamEvent(text=piece)
+                # Groq reports usage on the last chunk, either as `usage` or under `x_groq`
+                usage = (
+                    getattr(chunk, "usage", None)
+                    or getattr(getattr(chunk, "x_groq", None), "usage", None)
+                    or usage
+                )
+        except Exception as exc:
+            raise _translate(exc) from exc
+        yield StreamEvent(
+            final=Generation(
+                text="".join(parts),
+                model=model,
+                input_tokens=getattr(usage, "prompt_tokens", None),
+                output_tokens=getattr(usage, "completion_tokens", None),
+            )
         )
 
     def embed(

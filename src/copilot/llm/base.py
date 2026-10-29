@@ -6,6 +6,7 @@ import an SDK and can be tested with plain fakes.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
@@ -70,6 +71,14 @@ class Generation:
 
 
 @dataclass(frozen=True)
+class StreamEvent:
+    """One step of a streamed generation: a text delta, then a last event carrying the totals."""
+
+    text: str = ""
+    final: Generation | None = None  # set only on the last event (token counts may be None)
+
+
+@dataclass(frozen=True)
 class Embedding:
     """What a provider returns from embed(): one vector per input text, in order."""
 
@@ -108,6 +117,16 @@ class Provider(Protocol):
         temperature: float = 0.0,
         max_output_tokens: int | None = None,
     ) -> Generation: ...
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        system: str | None = None,
+        tier: Tier = "large",
+        temperature: float = 0.0,
+        max_output_tokens: int | None = None,
+    ) -> Iterator[StreamEvent]: ...
 
     def embed(
         self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None
