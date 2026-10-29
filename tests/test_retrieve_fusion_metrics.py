@@ -1,21 +1,14 @@
-"""RRF and the retrieval metrics on tiny fixed examples.
-
-The reference implementation must always pass. Your implementation ("mine": fusion.py and
-metrics.py) is marked xfail until you write it: remove the marker once it passes.
-"""
+"""RRF and the retrieval metrics on tiny fixed examples."""
 
 import pytest
 
 from copilot.retrieve.impl import get_impl
 from copilot.retrieve.metrics import is_hit
 
-TODO = pytest.mark.xfail(reason="TODO(me): fusion.py / metrics.py", strict=False)
-IMPLS = ["reference", pytest.param("mine", marks=TODO)]
 
-
-@pytest.fixture(params=IMPLS)
-def impl(request):
-    return get_impl(request.param)
+@pytest.fixture
+def impl():
+    return get_impl()
 
 
 # --- the matching rule (implemented, not a TODO) ---------------------------------------------

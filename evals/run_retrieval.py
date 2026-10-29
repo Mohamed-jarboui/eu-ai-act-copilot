@@ -42,10 +42,7 @@ from copilot.retrieve.rerank import Reranker
 from copilot.retrieve.search import DEPTH, METHODS, Retriever
 from copilot.retrieve.vector import VectorIndex
 
-# TODO(me): which implementation of RRF / recall@k / reciprocal rank produces the numbers.
-# "reference" = src/copilot/retrieve/_reference.py. Switch to "mine" (your fusion.py and
-# metrics.py) once their tests pass, rerun, and check that the numbers do not change.
-IMPL = "reference"
+IMPL = "mine"
 
 GOLD = Path("evals/retrieval_v0.jsonl")
 PRICES = Path("evals/prices.json")  # optional, see evals/README.md

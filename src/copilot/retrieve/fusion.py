@@ -18,14 +18,12 @@ def rrf_fuse(rankings: list[list[str]], k: int = 60) -> list[tuple[str, float]]:
     keep the one that appears first when scanning the rankings in the order given (first ranking
     first, top to bottom).
 
-    TODO(me): implement this.
-    Hints:
-      * Use only the RANKS, never the raw scores: a BM25 score and a cosine similarity live on
-        different scales and cannot be added.
-      * A dict id -> score plus one pass over each ranking (enumerate(..., start=1)) is enough.
-      * Python's sorted() is stable, so sorting a dict's items by -score already keeps the
-        first-seen order for ties (dicts remember insertion order).
-      * Check your work with tests/test_retrieve_fusion_metrics.py (the xfail tests become
-        passing), then set IMPL = "mine" in evals/run_retrieval.py and compare the numbers.
+    Only the ranks are used, never the raw scores: a BM25 score and a cosine similarity live on
+    different scales and cannot be added. A dict id -> score keeps insertion order, and sorted() is
+    stable, so documents with equal scores keep their first-seen order.
     """
-    raise NotImplementedError("TODO(me): implement RRF (see the formula in the docstring)")
+    scores: dict[str, float] = {}
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    return sorted(scores.items(), key=lambda item: -item[1])

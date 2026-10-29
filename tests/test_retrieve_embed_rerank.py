@@ -101,7 +101,7 @@ def retriever(make_unit, cache):
     rerank_llm = FakeRerankLLM("[0, 3, 1]")
     reranker = Reranker(rerank_llm, cache, model_label="fake", min_interval_s=0)
     retriever = Retriever(
-        corpus, BM25Index(corpus), vectors, embedder, get_impl("reference").rrf_fuse, reranker
+        corpus, BM25Index(corpus), vectors, embedder, get_impl().rrf_fuse, reranker
     )
     retriever.rerank_llm = rerank_llm
     return retriever
