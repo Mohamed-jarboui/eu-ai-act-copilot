@@ -43,3 +43,5 @@ uv run --env-file .env python evals/run_retrieval.py --methods bm25 --tag bm25_a
 ```
 
 Result files are named after `--tag`. As of 2026-10-29 only `results/retrieval_bm25_all.*` exists: English chunks are embedded and cached, French and German are not, and the vector, hybrid and rerank numbers are still to be produced.
+
+**Daily rerun on the maintainer's machine (Windows):** a scheduled task `EuAiActCopilot-RetrievalEval` runs `scripts/daily_retrieval_eval.ps1` every day at 08:10 (Gemini's quota resets around 08:00 Tunisian time). Each run resumes from the disk cache, appends to `data/cache/daily_eval.log`, and when a run completes (exit code 0, `results/retrieval.json` written) the script removes the task. Check progress with `Get-Content data/cache/daily_eval.log -Tail 20`; stop it with `Unregister-ScheduledTask -TaskName EuAiActCopilot-RetrievalEval`.
