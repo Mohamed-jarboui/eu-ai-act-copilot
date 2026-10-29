@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EU AI Act Copilot</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6a6a66; --line: #dcdcd6;
+    --accent: #1f5fbf; --ok: #1b7a43; --warn: #a15c00; --bad: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --text: #ececE8; --muted: #9a9a94; --line: #34342f;
+      --accent: #7aa7ee; --ok: #5cc98a; --warn: #e0a24a; --bad: #f08a82;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.25rem; margin: 8px 0 2px; }
+  .sub { color: var(--muted); font-size: .875rem; margin: 0 0 16px; }
+  #log { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .msg { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .msg.user { border-color: var(--accent); }
+  .msg .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg .text.draft { color: var(--muted); font-style: italic; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .badge { font-size: .75rem; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
+  .badge.ok { color: var(--ok); border-color: var(--ok); }
+  .badge.warn { color: var(--warn); border-color: var(--warn); }
+  .badge.bad { color: var(--bad); border-color: var(--bad); }
+  details { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+  details summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+  details p { margin: 6px 0 2px; font-size: .875rem; color: var(--muted); overflow-wrap: anywhere; }
+  .removed { margin-top: 8px; font-size: .8rem; color: var(--warn); }
+  .usage { margin-top: 8px; font-size: .75rem; color: var(--muted); }
+  form { position: sticky; bottom: 0; background: var(--bg); padding: 8px 0 12px; display: grid;
+         grid-template-columns: 1fr auto; gap: 8px; }
+  textarea { width: 100%; resize: vertical; min-height: 56px; padding: 10px; font: inherit; color: inherit;
+             background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .side { display: flex; flex-direction: column; gap: 8px; }
+  select, button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
+                   background: var(--panel); color: inherit; }
+  button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+  button:disabled { opacity: .55; cursor: wait; }
+  .note { color: var(--muted); font-size: .75rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>EU AI Act Copilot</h1>
+  <p class="sub">Questions about the AI Act and the GDPR in English, French or German, answered only from the
+    official texts, with article citations. Information about the texts, not legal advice.</p>
+  <div id="log" aria-live="polite"></div>
+  <form id="form">
+    <textarea id="q" placeholder="Ask a question, e.g. Does a chatbot have to say it is a machine?" required minlength="3"></textarea>
+    <div class="side">
+      <select id="lang" aria-label="Language">
+        <option value="">Auto</option><option value="en">English</option>
+        <option value="fr">Français</option><option value="de">Deutsch</option>
+      </select>
+      <button id="send" type="submit">Ask</button>
+    </div>
+  </form>
+  <p class="note">The grey italic text is a draft while the answer is being checked against its sources.</p>
+</main>
+<script>
+const log = document.getElementById("log");
+const form = document.getElementById("form");
+const send = document.getElementById("send");
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;   // never innerHTML: model output is untrusted
+  return node;
+}
+function addMessage(kind) {
+  const box = el("div", "msg " + kind);
+  log.appendChild(box);
+  box.scrollIntoView({ block: "end" });
+  return box;
+}
+function badge(parent, text, cls) { parent.appendChild(el("span", "badge " + (cls || ""), text)); }
+
+function renderFinal(box, a) {
+  box.replaceChildren(el("div", "text", a.answer));
+  const badges = el("div", "badges");
+  if (a.refused) badge(badges, "no answer: " + a.refusal_reason, "warn");
+  else if (a.grounded) badge(badges, "grounded", "ok");
+  else if (a.grounding_check === "unavailable") badge(badges, "could not be verified", "bad");
+  else badge(badges, a.removed_sentences.length + " unsupported sentence(s) removed", "warn");
+  badge(badges, "retrieval: " + a.retrieval_mode);
+  badge(badges, "language: " + a.language);
+  box.appendChild(badges);
+  for (const c of a.citations) {
+    const d = el("details");
+    d.appendChild(el("summary", "", c.label));
+    d.appendChild(el("p", "", c.snippet));
+    box.appendChild(d);
+  }
+  if (a.removed_sentences.length) {
+    box.appendChild(el("div", "removed", "Removed: " + a.removed_sentences.join(" | ")));
+  }
+  for (const n of a.retrieval_notes) box.appendChild(el("div", "removed", n));
+  const u = a.usage;
+  const tokens = u.input_tokens === null ? "tokens n/a" : u.input_tokens + " in / " + u.output_tokens + " out tokens";
+  box.appendChild(el("div", "usage", `${(u.total_ms / 1000).toFixed(1)} s · ${tokens} · ${u.model_calls} model call(s)`));
+}
+
+async function ask(question, language) {
+  const box = addMessage("bot");
+  const draft = el("div", "text draft", "Searching the texts…");
+  box.appendChild(draft);
+  const body = { question };
+  if (language) body.language = language;
+  const response = await fetch("/ask/stream", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    box.replaceChildren(el("div", "text", "Error " + response.status + ": " + (await response.text())));
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "", text = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0) {
+      const frame = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
+      const event = (frame.match(/^event: (.*)$/m) || [])[1];
+      const data = JSON.parse((frame.match(/^data: (.*)$/m) || [, "null"])[1]);
+      if (event === "sources") draft.textContent = `Reading ${data.length} source(s)…`;
+      else if (event === "delta") { text += data; draft.textContent = text; }
+      else if (event === "final") renderFinal(box, data);
+      else if (event === "error") box.replaceChildren(el("div", "text", data.detail));
+    }
+  }
+  box.scrollIntoView({ block: "end" });
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const question = document.getElementById("q").value.trim();
+  if (!question) return;
+  addMessage("user").appendChild(el("div", "text", question));
+  document.getElementById("q").value = "";
+  send.disabled = true;
+  try { await ask(question, document.getElementById("lang").value); }
+  catch (err) { addMessage("bot").appendChild(el("div", "text", "Request failed: " + err)); }
+  finally { send.disabled = false; }
+});
+</script>
+</body>
+</html>
