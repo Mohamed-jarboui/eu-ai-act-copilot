@@ -1,34 +1,24 @@
 """Citation parsing, labels, sentence splitting, refusal and language detection.
 
-The reference implementation must always pass. Yours ("mine": citations.py and refusal.py) is
-marked xfail until you write it: remove the marker once it passes.
+Covers src/copilot/answer/citations.py, labels.py, refusal.py and language.py.
 """
 
 import pytest
 
-from copilot.answer import citations
+from copilot.answer import citations, refusal
 from copilot.answer.evidence import Evidence
 from copilot.answer.impl import get_impl
 from copilot.answer.labels import cite_id, label_for
 from copilot.answer.language import detect_language
 from copilot.retrieve.chunks import Corpus
 
-TODO = pytest.mark.xfail(reason="TODO(me): citations.py / refusal.py", strict=False)
-IMPLS = ["reference", pytest.param("mine", marks=TODO)]
+
+@pytest.fixture
+def impl():
+    return get_impl()
 
 
-@pytest.fixture(params=IMPLS)
-def impl(request):
-    return get_impl(request.param)
-
-
-@pytest.fixture(params=["reference", "mine"])
-def refusal_impl(request):
-    """The placeholder in refusal.py already handles the basic cases, so no xfail here."""
-    return get_impl(request.param)
-
-
-# --- parse_citation (your TODO) --------------------------------------------------------------
+# --- parse_citation --------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -109,7 +99,7 @@ def test_second_lists_lose_their_list_marker(make_unit):
 def test_find_citations_in_order_and_with_several_per_bracket():
     found = citations.find_citations(
         "A [AI Act Art. 5(1)]. B [GDPR Art. 22(1); AI Act Art. 86] and [1] and [sic].",
-        parse=get_impl("reference").parse_citation,
+        parse=get_impl().parse_citation,
     )
     assert [(f.raw, f.cite_id) for f in found] == [
         ("AI Act Art. 5(1)", "aiact:art:5:1"),
@@ -150,37 +140,45 @@ def test_split_sentences_does_not_split_inside_a_citation():
     assert len(citations.split_sentences("See [AI Act Art. 6(2)]. Done.")) == 2
 
 
-# --- refusal -----------------------------------------------------------------------------------
+# --- refusal ---------------------------------------------------------------------------------
 
 
 def evidence(**kw):
-    base = dict(mode="hybrid", n_sources=5, top_cosine=0.7, top_bm25=9.0, query_tokens=6)
+    base = dict(
+        mode="hybrid", n_sources=5, top_cosine=0.7, top_bm25=9.0, query_tokens=6, language="en"
+    )
     return Evidence(**{**base, **kw})
 
 
-def test_refuse_when_nothing_was_retrieved(refusal_impl):
-    assert refusal_impl.should_refuse(evidence(n_sources=0, top_cosine=None, top_bm25=None))
+def test_refuse_when_nothing_was_retrieved(impl):
+    assert impl.should_refuse(evidence(n_sources=0, top_cosine=None, top_bm25=None))
 
 
-def test_do_not_refuse_with_sources_and_a_good_score(refusal_impl):
-    assert not refusal_impl.should_refuse(evidence())
+def test_do_not_refuse_with_sources_and_a_good_score(impl):
+    assert not impl.should_refuse(evidence())
 
 
-def test_cosine_gate_when_a_threshold_is_set(monkeypatch):
-    """Only the reference has a tunable threshold constant; yours decides its own."""
-    from copilot.answer import _reference
-
-    monkeypatch.setattr(_reference, "COSINE_MIN", 0.5)
-    refuse = get_impl("reference").should_refuse
-    assert refuse(evidence(top_cosine=0.4))
-    assert not refuse(evidence(top_cosine=0.6))
-    assert not refuse(evidence(mode="bm25", top_cosine=None))  # no cosine in bm25 mode
+def test_english_cosine_gate(impl):
+    threshold = refusal.COSINE_MIN["en"]
+    assert impl.should_refuse(evidence(top_cosine=threshold - 0.01))
+    assert not impl.should_refuse(evidence(top_cosine=threshold + 0.01))
 
 
-@TODO
-def test_your_refusal_logic_uses_the_cosine_signal():
-    refuse = get_impl("mine").should_refuse
-    assert refuse(evidence(top_cosine=0.05)) != refuse(evidence(top_cosine=0.95))
+def test_bm25_mode_is_never_refused_on_score(impl):
+    """No cosine exists, and BM25 scores cannot tell out-of-scope from in-scope questions."""
+    assert not impl.should_refuse(evidence(mode="bm25", top_cosine=None, top_bm25=0.1))
+
+
+def test_languages_without_a_threshold_are_not_gated(impl):
+    assert not impl.should_refuse(evidence(language="fr", top_cosine=0.01))
+
+
+def test_the_threshold_separates_the_calibration_data():
+    """The measured values behind COSINE_MIN: 9 in-scope English gold questions and the GPU one."""
+    in_scope = [0.781, 0.749, 0.699, 0.783, 0.745, 0.740, 0.814, 0.773, 0.719]
+    out_of_scope = [0.599]
+    assert all(c >= refusal.COSINE_MIN["en"] for c in in_scope)
+    assert all(c < refusal.COSINE_MIN["en"] for c in out_of_scope)
 
 
 # --- language ----------------------------------------------------------------------------------

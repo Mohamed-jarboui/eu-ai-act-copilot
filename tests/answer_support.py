@@ -37,7 +37,7 @@ class FakeLLM:
         yield StreamEvent(final=Generation(text, "m", 100, 10))
 
 
-def build_pipeline(corpus, gen_outputs, check_outputs=(), impl="reference"):
+def build_pipeline(corpus, gen_outputs, check_outputs=(), impl="mine"):
     gen, check = FakeLLM(gen_outputs), FakeLLM(check_outputs)
     retriever = AppRetriever(
         corpus, BM25Index(corpus), VectorIndex(corpus, {}), None, lambda rankings: []

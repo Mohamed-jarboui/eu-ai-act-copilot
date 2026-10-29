@@ -78,5 +78,5 @@ class AppRetriever:
             ids = [i for i, _ in lexical]
             mode, top_cosine = "bm25", None
         ids = ids[:k]
-        evidence = Evidence(mode, len(ids), top_cosine, top_bm25, n_tokens)
+        evidence = Evidence(mode, len(ids), top_cosine, top_bm25, n_tokens, language)
         return Retrieved(ids, evidence, time.perf_counter() - start, notes)

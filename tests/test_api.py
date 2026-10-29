@@ -29,7 +29,7 @@ def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
     assert body["retrieval_modes"] == {"en": "bm25", "fr": "bm25", "de": "bm25"}
-    assert body["implementation"] == "reference"
+    assert body["implementation"] == "mine"
 
 
 def test_ask_contract(client):

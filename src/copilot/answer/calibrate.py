@@ -2,7 +2,8 @@
 
 For every gold question this prints the best BM25 score (and per query token) and, where the
 question embedding and that language's vectors are in the disk cache, the best cosine similarity.
-It never calls an API. Use it to choose a refusal threshold, and say how many questions the
+It never calls an API, except with `--embed`, which fetches the question embeddings that are
+missing (one call each). Use it to choose a refusal threshold, and say how many questions the
 choice rests on: the gold set has only a few out-of-scope questions.
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import json
 import statistics
+import sys
 from pathlib import Path
 
 from copilot.retrieve.bm25 import BM25Index
@@ -20,6 +22,42 @@ from copilot.retrieve.tokenize import tokenize
 from copilot.retrieve.vector import VectorIndex
 
 GOLD = Path("evals/retrieval_v0.jsonl")
+EXTRA_OUT_OF_SCOPE = Path("evals/refusal_v0.jsonl")  # more out-of-scope questions (English)
+
+
+def questions() -> list[dict]:
+    rows = [json.loads(line) for line in GOLD.read_text("utf-8").splitlines() if line.strip()]
+    if EXTRA_OUT_OF_SCOPE.exists():
+        rows += [
+            json.loads(line)
+            for line in EXTRA_OUT_OF_SCOPE.read_text("utf-8").splitlines()
+            if line.strip()
+        ]
+    return rows
+
+
+def fetch_missing_query_embeddings() -> None:
+    """One API call per question whose embedding is not cached yet (needs GEMINI_API_KEY)."""
+    from copilot.llm.gemini import GeminiProvider
+    from copilot.llm.router import FallbackLLM
+    from copilot.retrieve.embed import QuotaExhaustedError
+
+    embedder = Embedder(
+        FallbackLLM([GeminiProvider()], max_attempts=2, backoff_base_s=2.0),
+        DiskCache(),
+        dimensions=768,
+        retry_wait_s=0,
+        max_waits=0,
+    )
+    for q in questions():
+        try:
+            embedder.embed([q["question"]], "query")
+        except QuotaExhaustedError:
+            print("daily embedding quota used up; the rest stays unembedded")
+            return
+        except Exception as exc:  # keep going: one failure should not hide the others
+            print(f"{q['id']}: {type(exc).__name__}")
+    print("query embeddings fetched")
 
 
 def collect() -> list[dict]:
@@ -28,8 +66,7 @@ def collect() -> list[dict]:
     embedder = Embedder(None, DiskCache(), dimensions=768)
     vectors = VectorIndex.from_cache(corpus, embedder)
     rows = []
-    for line in GOLD.read_text("utf-8").splitlines():
-        q = json.loads(line)
+    for q in questions():
         filters = Filters(language=q["lang"])
         hits = bm25.search_scored(q["question"], filters, 1)
         tokens = len(tokenize(q["question"], q["lang"]))
@@ -44,6 +81,8 @@ def collect() -> list[dict]:
 
 
 def main() -> None:
+    if "--embed" in sys.argv:
+        fetch_missing_query_embeddings()
     rows = collect()
     columns = ("id", "lang", "scope", "tokens", "top_bm25", "per_tok", "cosine")
     print(" ".join(f"{c:>8}" for c in columns))

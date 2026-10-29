@@ -19,3 +19,4 @@ class Evidence:
     top_cosine: float | None
     top_bm25: float | None
     query_tokens: int  # tokens left in the question after stopword removal
+    language: str = "en"  # cosine scales differ per language, so thresholds are per language

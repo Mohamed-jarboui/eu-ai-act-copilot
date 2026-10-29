@@ -1,14 +1,11 @@
-"""Choose which implementation of the TODO(me) functions the app uses."""
+"""The citation parser and refusal logic the app uses, gathered in one place."""
 
 from __future__ import annotations
 
-from copilot.answer import _reference, citations, refusal
+from copilot.answer import citations, refusal
 
-# TODO(me): "reference" = _reference.py (mine). Switch to "mine" (citations.py and refusal.py)
-# once their tests pass; the app should behave the same.
-IMPL = "reference"
-# Same idea for the retrieval functions the app uses (rrf_fuse in retrieve/fusion.py).
-RETRIEVE_IMPL = "reference"
+IMPL = "mine"
+RETRIEVE_IMPL = "mine"  # the retrieval functions the app uses (rrf_fuse in retrieve/fusion.py)
 
 
 class Impl:
@@ -19,8 +16,6 @@ class Impl:
 
 
 def get_impl(name: str = IMPL) -> Impl:
-    if name == "reference":
-        return Impl(name, _reference.parse_citation, _reference.should_refuse)
-    if name == "mine":
-        return Impl(name, citations.parse_citation, refusal.should_refuse)
-    raise ValueError(f"unknown implementation {name!r}")
+    if name != "mine":
+        raise ValueError(f"unknown implementation {name!r}")
+    return Impl(name, citations.parse_citation, refusal.should_refuse)

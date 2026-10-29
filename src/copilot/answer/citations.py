@@ -8,6 +8,17 @@ from dataclasses import dataclass
 CITATION_BRACKET = re.compile(r"\[([^\[\]]+)\]")
 
 
+_REGULATION = {"ai act": "aiact", "gdpr": "gdpr"}
+_ARTICLE = re.compile(
+    r"^(AI\s*Act|GDPR)\s+Art(?:icle)?\.?\s*(\d+[a-z]?)\s*((?:\(\s*\w+\s*\)\s*)*)$", re.IGNORECASE
+)
+_ANNEX = re.compile(
+    r"^(AI\s*Act|GDPR)\s+Annex\s+([IVXLC]+)"
+    r"(?:\s*,\s*Section\s+(\w+))?(?:\s*,\s*point\s+\(?(\w+)\)?)?$",
+    re.IGNORECASE,
+)
+
+
 def parse_citation(label: str) -> str | None:
     """Map ONE citation label, the text inside the brackets, to a cite id; None if not recognised.
 
@@ -19,22 +30,27 @@ def parse_citation(label: str) -> str | None:
         "AI Act Art. 6"                         -> "aiact:art:6"
         "AI Act Annex III"                      -> "aiact:anx:III"
         "AI Act Annex III, point 1"             -> "aiact:anx:III:1"
-        "AI Act Annex VIII, Section A, point 1" -> "aiact:anx:VIII:A:1"   (stretch goal)
+        "AI Act Annex VIII, Section A, point 1" -> "aiact:anx:VIII:A:1"
         "Directive 2016/680 Art. 3"             -> None   (not one of our two regulations)
 
-    TODO(me): implement this.
-    Hints:
-      * Two regulation names: "AI Act" -> "aiact", "GDPR" -> "gdpr". Be lenient about case and
-        spacing ("Art 6(2)", "Art.6 (2)"), because models are not perfectly consistent.
-      * After the article number come zero or more parenthesised parts "(2)", "(f)", "(i)": each
-        becomes one ":part", lowercased. A regex with a repeated group, or re.findall over the
-        tail, does it. Article numbers can carry a letter ("43a").
-      * Return None for anything you do not recognise: the pipeline treats that as an invalid
-        citation (and drops the sentence), which is better than guessing an id.
-      * Check yourself with tests/test_answer_citations.py: it also round-trips EVERY id of the
-        real corpus through label_for and back, so any pattern you forgot shows up there.
+    Lenient about case and spacing ("ai act art 6 (2)"), because models are not perfectly
+    consistent. Anything not recognised returns None, which the pipeline treats as an invalid
+    citation and drops the sentence, rather than guessing an id.
     """
-    raise NotImplementedError("TODO(me): implement the citation parser (see the docstring)")
+    label = " ".join(label.split())
+    if match := _ARTICLE.match(label):
+        regulation = _REGULATION[re.sub(r"\s+", " ", match.group(1).lower())]
+        parts = re.findall(r"\(\s*(\w+)\s*\)", match.group(3))
+        return ":".join([regulation, "art", match.group(2).lower(), *[p.lower() for p in parts]])
+    if match := _ANNEX.match(label):
+        regulation = _REGULATION[re.sub(r"\s+", " ", match.group(1).lower())]
+        parts = [match.group(2).upper()]
+        if match.group(3):
+            parts.append(match.group(3).upper())
+        if match.group(4):
+            parts.append(match.group(4).lower())
+        return ":".join([regulation, "anx", *parts])
+    return None
 
 
 @dataclass(frozen=True)
