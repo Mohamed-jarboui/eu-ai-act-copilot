@@ -4,10 +4,12 @@ import pytest
 
 from copilot.llm import (
     AllProvidersFailedError,
+    AuthError,
     BadRequestError,
     Embedding,
     FallbackLLM,
     Generation,
+    NotFoundError,
     RateLimitError,
     ServerError,
     UnsupportedOperationError,
@@ -145,3 +147,35 @@ def test_all_providers_failing_raises():
 
     with pytest.raises(AllProvidersFailedError):
         llm.generate("hi")
+
+
+@pytest.mark.parametrize("error", [AuthError("401"), NotFoundError("404 model retired")])
+def test_auth_and_not_found_errors_fall_back_without_retrying(error):
+    primary = FakeProvider("gemini", [error])
+    backup = FakeProvider("groq", ["from groq"])
+    llm, sleeps = make_llm(primary, backup)
+
+    assert llm.generate("hi").text == "from groq"
+    assert primary.calls == 1  # these will not fix themselves: no retry
+    assert sleeps == []
+    assert llm.usage[0].error is not None  # the failure stays visible in the usage records
+
+
+@pytest.mark.parametrize(
+    ("status", "error_type"),
+    [
+        (429, RateLimitError),
+        (401, AuthError),
+        (403, AuthError),
+        (404, NotFoundError),
+        (400, BadRequestError),
+        (422, BadRequestError),
+        (500, ServerError),
+        (503, ServerError),
+        (None, ServerError),
+    ],
+)
+def test_error_from_status(status, error_type):
+    from copilot.llm.base import error_from_status
+
+    assert type(error_from_status(status, "x", provider="p")) is error_type

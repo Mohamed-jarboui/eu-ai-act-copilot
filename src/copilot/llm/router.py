@@ -8,9 +8,11 @@ from typing import TypeVar
 
 from copilot.llm.base import (
     AllProvidersFailedError,
+    AuthError,
     Embedding,
     EmbedTask,
     Generation,
+    NotFoundError,
     Provider,
     ProviderError,
     RateLimitError,
@@ -33,16 +35,19 @@ def should_fallback(error: ProviderError) -> bool:
     """Decide whether to move on to the next provider after `error`.
 
     Called once a provider is finished with (its retries are used up, or the error was not
-    retryable). Return True to try the next provider, False to stop and raise.
+    retryable). The question is whether the NEXT provider could plausibly succeed:
+
+    * RateLimitError, ServerError: the problem is on this provider's side -> yes.
+    * NotFoundError: this provider cannot serve the request (a retired model, as happened with
+      gemini-2.5-flash) -> yes; the next provider has its own models.
+    * AuthError: our key for THIS provider is bad, the next provider has its own key -> yes. The
+      cost is silent degradation, so every failed attempt stays in `usage` with its error text and
+      should be monitored rather than hidden.
+    * BadRequestError: the request itself is wrong (and the next provider would likely reject it
+      too) -> no: fail loudly. One known gap: a prompt too long for one model's context window
+      may fit another's.
     """
-    # TODO(me): decide which errors trigger fallback to the next provider.
-    # Hint: ask "would the NEXT provider plausibly succeed with the same request?"
-    #   - RateLimitError / ServerError: the problem is on this provider's side -> usually yes.
-    #   - BadRequestError: the request itself is wrong -> would Groq accept it? Probably not.
-    #   - AuthError: our Gemini key is bad. Groq has its own key... so what is the right call?
-    #     Think about whether failing loudly or degrading silently is better for debugging.
-    # Placeholder below is conservative so the tests can run; replace it with your own logic.
-    return isinstance(error, RateLimitError | ServerError)
+    return isinstance(error, RateLimitError | ServerError | NotFoundError | AuthError)
 
 
 class FallbackLLM:
