@@ -61,6 +61,13 @@ class Embedder:
     def _key(self, text: str, task: EmbedTask) -> str:
         return digest(self.model, task, self.dimensions, text)
 
+    def cached(self, texts: list[str], task: EmbedTask) -> np.ndarray | None:
+        """Unit-length vectors for `texts` if every one is in the disk cache, else None."""
+        rows = [self.cache.get_embedding(self._key(t[:MAX_EMBED_CHARS], task)) for t in texts]
+        if any(row is None for row in rows):
+            return None
+        return _normalise(np.stack([row[0] for row in rows]))
+
     def embed(
         self, texts: list[str], task: EmbedTask, stats: EmbedStats | None = None
     ) -> tuple[np.ndarray, list[float]]:
