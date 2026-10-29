@@ -1,4 +1,4 @@
-.PHONY: install lint test ingest
+.PHONY: install lint test ingest eval-retrieval
 
 install:
 	uv sync
@@ -12,3 +12,6 @@ test:
 
 ingest:
 	uv run python -m copilot.ingest
+
+eval-retrieval:
+	uv run --env-file .env python evals/run_retrieval.py
