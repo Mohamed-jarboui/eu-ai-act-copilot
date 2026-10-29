@@ -1,21 +1,28 @@
 # Learning log
 
-Everything left "for later" in learning mode: the `TODO(me)` pieces and the understanding questions, each with an answer and the reasoning. Try each item yourself first, then compare.
+Everything left "for later" in learning mode: the `TODO(me)` pieces and the understanding questions, each with an answer and the reasoning.
 
-## Open TODO(me) items
+## Status of the TODO(me) items: all implemented
 
-| # | Stage | File | What to implement | Tests that tell you when you're done |
-|---|---|---|---|---|
-| 1 | 0 | `src/copilot/llm/router.py` | `should_fallback(error)`: which errors move on to the next provider | `tests/test_llm_router.py` (add an `AuthError` case) |
-| 2 | 1 | `src/copilot/ingest/refs.py` | `extract_cross_refs(text, lang)`: find "Article 9" / "Annex III" in EN, FR, DE | `tests/test_refs.py` (8 xfail cases: remove each marker as it passes) |
+On 2026-10-29 the owner asked for the `TODO(me)` items to be implemented so the project could be finished and merged, so they are **no longer open**: the code contains the implementations (written by Claude, not by the owner) and no `TODO(me)` markers remain. The sections below stay as study material: for each item, what the function has to do, the reasoning, and the design decisions worth understanding. The useful way to use them now is to read the code, close the file, and try to explain or re-derive each decision.
 
-After finishing #2, run `make ingest` (the corpus stores `refs`, and `test_committed_corpus_is_up_to_date` fails if the committed corpus is stale), then update the "Cross-references" bullet in `docs/data-card.md`.
+| # | Stage | Implemented in | Decision worth understanding |
+|---|---|---|---|
+| 1 | 0 | `llm/router.py` (`should_fallback`), `llm/base.py` | Fall back on rate limit, server error, **not found** and **auth** errors; never on a bad request. A 404 now has its own error type (`NotFoundError`) because a retired model is a provider problem, not a bad request. Falling back on auth errors keeps the service up but can hide a broken key, so failures stay visible in `usage`. |
+| 2 | 1 | `ingest/refs.py` (`extract_cross_refs`) | Lists and ranges are expanded; references to other acts are skipped. The corpus was regenerated with real `refs` in all three languages. |
+| 3-5 | 2 | `retrieve/fusion.py`, `retrieve/metrics.py` | RRF uses ranks, not scores; recall counts each gold id once. The BM25 numbers are reproduced exactly (0.694 / 0.797 / 0.652). |
+| 6 | 3 | `answer/citations.py` (`parse_citation`) | The inverse of `labels.label_for`; every one of the 1092 corpus labels round-trips. Unknown labels return `None` so the sentence is dropped, not guessed. |
+| 7 | 3 | `answer/refusal.py` (`should_refuse`) | **The weakest piece.** English-only cosine threshold 0.65, calibrated on 9 in-scope questions (0.699 to 0.814) and 1 out-of-scope one (0.599). Provisional, because the embedding quota blocked more data. BM25 scores are not used. |
+
+Still needing a human decision: item 7's threshold (add out-of-scope questions, embed them, recalibrate with `python -m copilot.answer.calibrate --embed`; `evals/refusal_v0.jsonl` holds 12 English ones that are not embedded yet).
 
 ---
 
 ## Stage 0: provider layer
 
-### TODO #1: `should_fallback`
+### TODO #1: `should_fallback` (implemented)
+
+*Status: implemented, with `AuthError` and a new `NotFoundError` falling back; tests in `tests/test_llm_router.py`. The text below is the original task description and reasoning.*
 
 **The question to answer:** after a provider is finished with (retries used up, or the error was not retryable), would the *next* provider plausibly succeed with the same request?
 
@@ -70,7 +77,9 @@ Injection makes the tests instant (no real sleeping), deterministic, and able to
 
 ## Stage 1: ingestion
 
-### TODO #2: `extract_cross_refs`
+### TODO #2: `extract_cross_refs` (implemented)
+
+*Status: implemented in `ingest/refs.py` (the version described here); the corpus and the data card are regenerated.*
 
 **Target output** (language-independent, regulation-agnostic): `"art:9"`, `"art:6:2"` (paragraph 2 of Article 6), `"anx:III"`, in order of first appearance, no duplicates.
 
@@ -181,7 +190,7 @@ def extract_cross_refs(text: str, lang: str) -> list[str]:
 
 </details>
 
-**What I measured with this reference implementation** (run once over the corpus built from `data/raw`, in a scratch script; the repository code was not changed):
+**What I measured with this reference implementation** (first in a scratch script, then reproduced exactly by `make ingest` once the implementation was in the repository):
 
 - 23 of 23 hand-written cases pass.
 - Units with at least one reference: EN 773, FR 777, DE 743, each out of 2375 units per language (AI Act and GDPR together).
@@ -191,9 +200,9 @@ def extract_cross_refs(text: str, lang: str) -> list[str]:
 
 **Checklist when you finish**
 
-- [ ] Remove the xfail marker from each case in `tests/test_refs.py` that now passes.
-- [ ] `make ingest`, then commit the regenerated `data/processed/corpus.jsonl`.
-- [ ] Replace the "Cross-references" bullet in `docs/data-card.md` with what your function really covers, with counts from a script run.
+- [x] Remove the xfail marker from each case in `tests/test_refs.py` that now passes.
+- [x] `make ingest`, then commit the regenerated `data/processed/corpus.jsonl`.
+- [x] Replace the "Cross-references" bullet in `docs/data-card.md` with what your function really covers, with counts from a script run.
 
 ### Questions and answers
 
@@ -222,7 +231,7 @@ Skip it (or, better in a later version, record it with its target regulation). R
 
 The first live run embedded all English chunks (1084 distinct texts) and then hit Gemini's free-tier **daily** limit (1000 embedding requests per day, "retry in about 16h"). The only results so far are BM25 on all 37 scored questions (`results/retrieval_bm25_all.json`). To finish, rerun the commands in `evals/README.md` ("Finishing the vector results") once per day, or enable billing on the key (your call). Until then there is no honest answer to "which method wins".
 
-### TODO #3, #4, #5: `rrf_fuse`, `recall_at_k`, `reciprocal_rank`
+### TODO #3, #4, #5: `rrf_fuse`, `recall_at_k`, `reciprocal_rank` (implemented)
 
 | # | File | Formula |
 |---|---|---|
@@ -230,7 +239,7 @@ The first live run embedded all English chunks (1084 distinct texts) and then hi
 | 4 | `src/copilot/retrieve/metrics.py` | `recall@k = |{g in gold : some retrieved r in the top k has is_hit(r, g)}| / |gold|` |
 | 5 | same | `RR = 1 / rank of the first hit` (0 if none); `MRR = mean(RR)` |
 
-How to know you're done: the `mine` cases in `tests/test_retrieve_fusion_metrics.py` stop being xfail (remove the markers), then set `IMPL = "mine"` in `evals/run_retrieval.py` and rerun. **The numbers must not change.** You can already check #4 and #5 against the BM25 run, which used the reference implementation on 37 questions:
+*Status: implemented in `fusion.py` and `metrics.py`, and the evaluation runner uses them (`IMPL = "mine"`). Rerunning the BM25 evaluation with them reproduced exactly the numbers below, which is the check for #4 and #5; #3 has tests with exact expected scores and is only exercised by the hybrid runs.*
 
 | Method | recall@5 | recall@10 | MRR |
 |---|---|---|---|
@@ -239,7 +248,7 @@ How to know you're done: the `mine` cases in `tests/test_retrieve_fusion_metrics
 (`python evals/run_retrieval.py --methods bm25 --tag bm25_all` with your implementation should print exactly these.) #3 can only be checked against the vector runs, but its tests have exact expected scores.
 
 <details>
-<summary>Reference implementations (they live in <code>src/copilot/retrieve/_reference.py</code>; try yours first)</summary>
+<summary>The implementations (now in <code>fusion.py</code> and <code>metrics.py</code>)</summary>
 
 ```python
 def rrf_fuse(rankings, k=60):
@@ -287,19 +296,19 @@ Gemini's free tier has a per-day cap (1000 embedding texts), which is a differen
 
 ## Stage 3: answers, API and chat page
 
-### New TODO(me) items
+### TODO items 6 and 7 (implemented)
 
-| # | File | What to implement |
+| # | File | What it does |
 |---|---|---|
 | 6 | `src/copilot/answer/citations.py` | `parse_citation(label) -> cite id or None`: `"AI Act Art. 6(2)"` becomes `"aiact:art:6:2"` |
 | 7 | `src/copilot/answer/refusal.py` | `should_refuse(evidence) -> bool`: refuse before any model call when retrieval is empty or weak |
 
-The app runs on my versions from `src/copilot/answer/_reference.py` (`IMPL = "reference"` in `answer/impl.py`) until yours pass their tests. For #6 the test `test_every_corpus_label_round_trips` turns every one of the 1092 indexed chunks into its label and asks your parser to turn it back, so any pattern you forget shows up with the exact id. For #7 the placeholder only refuses when nothing was retrieved; the cosine part is yours.
+*Status: both implemented. `test_every_corpus_label_round_trips` turns every one of the 1092 indexed chunks into its label and back through the parser.*
 
-**Read this before writing #7: BM25 scores cannot tell out-of-scope questions from in-scope ones.** `make calibrate` (no API calls) prints, per gold question, the best BM25 score per query token: in-scope questions (n=37) range from 1.04 to 4.09 (median 1.77); the 3 out-of-scope questions score 0.00, 2.50 and 2.69, right inside that range, because "What is the best GPU for training a large language model?" shares words like "training" and "model" with the AI Act. Cosine similarity of the best vector hit is the better signal, but at the end of this session it is known for only 7 of the 37 in-scope questions (0.699 to 0.783, all English) and 1 of the 3 out-of-scope ones (the GPU question: 0.599), because the bulk embedding quota ran out (single-text query embeddings still went through). A threshold between 0.60 and 0.70 would separate those 8 questions, but that is 1 negative against 7 positives, so the threshold is not set. Plan: embed the 40 gold questions (about 40 texts), rerun `make calibrate`, and set `COSINE_MIN` (reference) or your own number, stating the sample sizes. With only 3 negatives it will stay weak: add about 10 out-of-scope questions to the gold set first.
+**Why #7 does not use BM25 scores: BM25 scores cannot tell out-of-scope questions from in-scope ones.** `make calibrate` (no API calls) prints, per gold question, the best BM25 score per query token: in-scope questions (n=37) range from 1.04 to 4.09 (median 1.77); the 3 out-of-scope questions score 0.00, 2.50 and 2.69, right inside that range, because "What is the best GPU for training a large language model?" shares words like "training" and "model" with the AI Act. Cosine similarity of the best vector hit is the better signal, and `refusal.py` uses it for English: `COSINE_MIN = {"en": 0.65}`, set between the lowest of the 9 in-scope English questions whose embeddings were fetched (0.699 to 0.814) and the one out-of-scope question (the GPU question, 0.599). **That is a provisional value resting on 1 negative against 9 positives**, because the bulk embedding quota ran out (it also blocked the 12 extra out-of-scope questions in `evals/refusal_v0.jsonl`). It is deliberately conservative since the model's `NOT_COVERED` answer and the grounding check still follow. French and German are not gated until their vectors exist and the threshold is recalibrated (`python -m copilot.answer.calibrate --embed`).
 
 <details>
-<summary>Reference implementations (try yours first)</summary>
+<summary>The implementations (now in <code>citations.py</code> and <code>refusal.py</code>)</summary>
 
 ```python
 def parse_citation(label):
