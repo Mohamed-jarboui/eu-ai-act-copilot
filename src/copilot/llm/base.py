@@ -12,6 +12,9 @@ from typing import Literal, Protocol
 Tier = Literal["small", "large"]
 """Model tier: "small" for routing/grading, "large" for synthesis (see docs/design.md)."""
 
+EmbedTask = Literal["document", "query"]
+"""What an embedding is for: asymmetric models embed a passage and a query differently."""
+
 
 class ProviderError(Exception):
     """Base class for every error a provider is allowed to raise."""
@@ -106,4 +109,6 @@ class Provider(Protocol):
         max_output_tokens: int | None = None,
     ) -> Generation: ...
 
-    def embed(self, texts: list[str]) -> Embedding: ...
+    def embed(
+        self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None
+    ) -> Embedding: ...

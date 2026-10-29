@@ -8,6 +8,7 @@ import groq as groq_sdk
 
 from copilot.llm.base import (
     Embedding,
+    EmbedTask,
     Generation,
     ProviderError,
     ServerError,
@@ -16,24 +17,35 @@ from copilot.llm.base import (
     error_from_status,
 )
 
-# Overridable via the constructor. Verify against the providers' current model lists.
+# Overridable via the constructor. Checked against `available_models()` on 2026-10-29: the
+# llama-3.x names used before were not offered by this key, these two chat models were.
 DEFAULT_MODELS: dict[Tier, str] = {
-    "small": "llama-3.1-8b-instant",
-    "large": "llama-3.3-70b-versatile",
+    "small": "openai/gpt-oss-20b",
+    "large": "openai/gpt-oss-120b",
 }
 
 
 class GroqProvider:
     name = "groq"
 
+    def available_models(self) -> list[str]:
+        """Model ids this key can use (a live call), to check the configured names exist."""
+        return [m.id for m in self._client.models.list().data]
+
     def __init__(
-        self, api_key: str | None = None, *, models: dict[Tier, str] | None = None
+        self,
+        api_key: str | None = None,
+        *,
+        models: dict[Tier, str] | None = None,
+        reasoning_effort: str | None = None,
     ) -> None:
         key = api_key or os.environ.get("GROQ_API_KEY")
         if not key:
             raise ValueError("GROQ_API_KEY is not set")
         self._client = groq_sdk.Groq(api_key=key, max_retries=0)  # retries are the router's job
         self._models = models or DEFAULT_MODELS
+        # Reasoning models (gpt-oss) spend output tokens thinking; "low" keeps that small.
+        self._extra = {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
 
     def generate(
         self,
@@ -55,6 +67,7 @@ class GroqProvider:
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_output_tokens,
+                **self._extra,
             )
         except Exception as exc:
             raise _translate(exc) from exc
@@ -66,7 +79,9 @@ class GroqProvider:
             output_tokens=usage.completion_tokens if usage else None,
         )
 
-    def embed(self, texts: list[str]) -> Embedding:
+    def embed(
+        self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None
+    ) -> Embedding:
         raise UnsupportedOperationError("Groq has no embeddings endpoint", provider=self.name)
 
 

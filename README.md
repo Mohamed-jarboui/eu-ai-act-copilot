@@ -14,6 +14,7 @@ cp .env.example .env    # then add GEMINI_API_KEY and/or GROQ_API_KEY
 make lint               # ruff check + format check
 make test               # pytest (no network, fake providers)
 make ingest             # parse data/raw into data/processed/corpus.jsonl (downloads missing files)
+make eval-retrieval     # recall@k / MRR for BM25, vector, hybrid, hybrid+rerank (needs both API keys)
 ```
 
 Corpus format, sources, licence and limitations: [docs/data-card.md](docs/data-card.md).

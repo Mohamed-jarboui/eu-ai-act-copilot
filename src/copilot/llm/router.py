@@ -9,6 +9,7 @@ from typing import TypeVar
 from copilot.llm.base import (
     AllProvidersFailedError,
     Embedding,
+    EmbedTask,
     Generation,
     Provider,
     ProviderError,
@@ -97,9 +98,11 @@ class FallbackLLM:
 
         return self._run(call, usage_of)
 
-    def embed(self, texts: list[str]) -> Embedding:
+    def embed(
+        self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None
+    ) -> Embedding:
         def call(provider: Provider) -> Embedding:
-            return provider.embed(texts)
+            return provider.embed(texts, task=task, dimensions=dimensions)
 
         def usage_of(provider: Provider, result: Embedding | None, t: float, err: str | None):
             return Usage(

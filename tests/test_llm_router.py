@@ -30,7 +30,7 @@ class FakeProvider:
             raise item
         return Generation(text=item, model=f"{self.name}-model", input_tokens=7, output_tokens=3)
 
-    def embed(self, texts) -> Embedding:
+    def embed(self, texts, **kwargs) -> Embedding:
         self.calls += 1
         item = self.embed_script.pop(0)
         if isinstance(item, Exception):

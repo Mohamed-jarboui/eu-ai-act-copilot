@@ -1,0 +1,815 @@
+{
+  "config": {
+    "date": "2026-10-29",
+    "impl": "reference",
+    "languages": [
+      "en",
+      "fr",
+      "de"
+    ],
+    "embed_model": "gemini-embedding-001",
+    "embed_dimensions": 768,
+    "rerank_model": "openai/gpt-oss-20b",
+    "rrf_k": 60,
+    "depth": 50,
+    "questions_scored": 37,
+    "questions_skipped": 3,
+    "chunks_per_language": {
+      "en": 1092,
+      "fr": 1092,
+      "de": 1092
+    },
+    "max_embed_chars": 6000
+  },
+  "index_build": {
+    "chunks": 3276,
+    "unique_texts": 3256,
+    "chars": 1745750,
+    "truncated": 2,
+    "api_calls_this_run": 0
+  },
+  "methods": {
+    "bm25": {
+      "overall": {
+        "n": 37,
+        "recall@5": 0.6937,
+        "recall@10": 0.7973,
+        "mrr": 0.6522
+      },
+      "by_language": {
+        "de": {
+          "n": 12,
+          "recall@5": 0.625,
+          "recall@10": 0.625,
+          "mrr": 0.5782
+        },
+        "en": {
+          "n": 13,
+          "recall@5": 0.7692,
+          "recall@10": 0.8462,
+          "mrr": 0.6095
+        },
+        "fr": {
+          "n": 12,
+          "recall@5": 0.6806,
+          "recall@10": 0.9167,
+          "mrr": 0.7725
+        }
+      },
+      "by_scope": {
+        "aiact": {
+          "n": 23,
+          "recall@5": 0.7174,
+          "recall@10": 0.8043,
+          "mrr": 0.6715
+        },
+        "both": {
+          "n": 4,
+          "recall@5": 0.375,
+          "recall@10": 0.5,
+          "mrr": 0.5135
+        },
+        "gdpr": {
+          "n": 10,
+          "recall@5": 0.7667,
+          "recall@10": 0.9,
+          "mrr": 0.6633
+        }
+      },
+      "latency_ms": {
+        "mean": 1.47,
+        "p50": 1.48,
+        "p95": 2.04,
+        "mean_local": 1.47,
+        "mean_api_recorded": 0.0
+      },
+      "usage_total": {
+        "embed_calls": 0,
+        "embed_chars": 0,
+        "rerank_calls": 0,
+        "rerank_input_tokens": 0,
+        "rerank_output_tokens": 0,
+        "rerank_failed": 0
+      },
+      "usage_per_query": {
+        "embed_calls": 0.0,
+        "embed_chars": 0.0,
+        "rerank_calls": 0.0,
+        "rerank_input_tokens": 0.0,
+        "rerank_output_tokens": 0.0,
+        "rerank_failed": 0.0
+      },
+      "questions": [
+        {
+          "id": "q01",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:5"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:5:2",
+            "aiact:art:26:9",
+            "aiact:art:27:1",
+            "aiact:art:23:5",
+            "aiact:anx:X:1"
+          ]
+        },
+        {
+          "id": "q02",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:6",
+            "aiact:anx:III"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:6:2",
+            "aiact:art:75:3",
+            "aiact:anx:III:4",
+            "aiact:art:14:1",
+            "aiact:art:25:4"
+          ]
+        },
+        {
+          "id": "q03",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:50"
+          ],
+          "first_hit_rank": 8,
+          "rr": 0.125,
+          "recall@5": 0.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:14:1",
+            "aiact:art:48:2",
+            "aiact:art:3",
+            "gdpr:art:12:7",
+            "aiact:art:47:1"
+          ]
+        },
+        {
+          "id": "q04",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:99"
+          ],
+          "first_hit_rank": 13,
+          "rr": 0.07692307692307693,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "aiact:art:3",
+            "aiact:art:26:7",
+            "aiact:art:101:5",
+            "aiact:art:56:6",
+            "aiact:art:56:8"
+          ]
+        },
+        {
+          "id": "q05",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:4"
+          ],
+          "first_hit_rank": 4,
+          "rr": 0.25,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:75:4",
+            "gdpr:art:62:3",
+            "aiact:art:14:1",
+            "aiact:art:4",
+            "aiact:art:57:1"
+          ]
+        },
+        {
+          "id": "q06",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:12"
+          ],
+          "first_hit_rank": 4,
+          "rr": 0.25,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:19:1",
+            "aiact:art:19:2",
+            "aiact:art:21:2",
+            "aiact:art:12:1",
+            "aiact:art:26:6"
+          ]
+        },
+        {
+          "id": "q07",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:53"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:53:4",
+            "aiact:anx:XI:1",
+            "aiact:art:53:1",
+            "aiact:art:51:2",
+            "aiact:art:55:2"
+          ]
+        },
+        {
+          "id": "q08",
+          "lang": "en",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:51"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:51:1",
+            "aiact:art:52:3",
+            "aiact:art:55:1",
+            "aiact:art:52:2",
+            "aiact:art:51:2"
+          ]
+        },
+        {
+          "id": "q09",
+          "lang": "en",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:33"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:33:1",
+            "gdpr:art:33:5",
+            "gdpr:art:33:2",
+            "gdpr:art:34:4",
+            "gdpr:art:34:1"
+          ]
+        },
+        {
+          "id": "q10",
+          "lang": "en",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:9"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:9:1",
+            "gdpr:art:4",
+            "aiact:art:65:5",
+            "gdpr:art:4",
+            "gdpr:art:62:3"
+          ]
+        },
+        {
+          "id": "q11",
+          "lang": "en",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:15"
+          ],
+          "first_hit_rank": 5,
+          "rr": 0.2,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:17:2",
+            "gdpr:art:4",
+            "gdpr:art:19",
+            "gdpr:art:4",
+            "gdpr:art:15:3"
+          ]
+        },
+        {
+          "id": "q12",
+          "lang": "en",
+          "scope": "both",
+          "gold": [
+            "gdpr:art:22",
+            "aiact:art:86"
+          ],
+          "first_hit_rank": 46,
+          "rr": 0.021739130434782608,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "aiact:art:52:3",
+            "aiact:art:45:2",
+            "aiact:art:74:7",
+            "aiact:art:19:2",
+            "aiact:art:19:1"
+          ]
+        },
+        {
+          "id": "q13",
+          "lang": "en",
+          "scope": "both",
+          "gold": [
+            "aiact:art:27",
+            "gdpr:art:35"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:27:1",
+            "aiact:art:27:2",
+            "aiact:art:27:4",
+            "aiact:art:3",
+            "gdpr:art:35:5"
+          ]
+        },
+        {
+          "id": "q15",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:3"
+          ],
+          "first_hit_rank": 8,
+          "rr": 0.125,
+          "recall@5": 0.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:51:3",
+            "aiact:art:71:1",
+            "aiact:art:1:2",
+            "aiact:art:74:1",
+            "aiact:art:75:1"
+          ]
+        },
+        {
+          "id": "q16",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:26"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:26:11",
+            "aiact:art:26:1",
+            "aiact:art:27:2",
+            "aiact:art:26:7",
+            "aiact:art:26:5"
+          ]
+        },
+        {
+          "id": "q17",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:14"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:14:4",
+            "aiact:art:14:2",
+            "aiact:art:26:2",
+            "aiact:art:14:1",
+            "aiact:art:14:3"
+          ]
+        },
+        {
+          "id": "q18",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:10"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:10:6",
+            "aiact:art:42:1",
+            "aiact:art:10:1",
+            "aiact:art:2:2",
+            "aiact:art:15:5"
+          ]
+        },
+        {
+          "id": "q19",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:23"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:23:1",
+            "aiact:art:24:1",
+            "aiact:art:23:5",
+            "aiact:art:23:7",
+            "aiact:art:23:2"
+          ]
+        },
+        {
+          "id": "q20",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:113"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:113",
+            "gdpr:art:99:2",
+            "aiact:art:3",
+            "aiact:art:48:2",
+            "gdpr:art:37:2"
+          ]
+        },
+        {
+          "id": "q21",
+          "lang": "fr",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:5"
+          ],
+          "first_hit_rank": 22,
+          "rr": 0.045454545454545456,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "aiact:art:26:7",
+            "aiact:art:3",
+            "aiact:art:50:3",
+            "aiact:art:2:11",
+            "aiact:art:14:4"
+          ]
+        },
+        {
+          "id": "q22",
+          "lang": "fr",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:6"
+          ],
+          "first_hit_rank": 10,
+          "rr": 0.1,
+          "recall@5": 0.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:35:10",
+            "aiact:art:92:4",
+            "gdpr:art:4",
+            "gdpr:art:4",
+            "gdpr:art:29"
+          ]
+        },
+        {
+          "id": "q23",
+          "lang": "fr",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:37"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:37:2",
+            "gdpr:art:38:3",
+            "gdpr:art:37:7",
+            "gdpr:art:37:6",
+            "gdpr:art:35:2"
+          ]
+        },
+        {
+          "id": "q24",
+          "lang": "fr",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:7"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:7:3",
+            "gdpr:art:7:1",
+            "gdpr:art:7:4",
+            "aiact:art:44:2",
+            "gdpr:art:7:2"
+          ]
+        },
+        {
+          "id": "q25",
+          "lang": "fr",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:44",
+            "gdpr:art:45",
+            "gdpr:art:46"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 0.6666666666666666,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:44",
+            "gdpr:art:45:1",
+            "gdpr:art:45:7",
+            "gdpr:art:15:2",
+            "aiact:art:3"
+          ]
+        },
+        {
+          "id": "q26",
+          "lang": "fr",
+          "scope": "both",
+          "gold": [
+            "aiact:art:10",
+            "gdpr:art:6"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 0.5,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:10:6",
+            "aiact:art:10:1",
+            "aiact:anx:XI:1:2",
+            "aiact:anx:XI:1",
+            "aiact:art:15:5"
+          ]
+        },
+        {
+          "id": "q28",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:16"
+          ],
+          "first_hit_rank": 32,
+          "rr": 0.03125,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "aiact:art:26:3",
+            "aiact:art:26:8",
+            "aiact:art:25:2",
+            "aiact:art:17:3",
+            "aiact:art:25:3"
+          ]
+        },
+        {
+          "id": "q29",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:9"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:9:7",
+            "gdpr:art:24:2",
+            "aiact:art:15:4",
+            "aiact:art:12:3",
+            "aiact:art:15:5"
+          ]
+        },
+        {
+          "id": "q30",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:11",
+            "aiact:anx:IV"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 0.5,
+          "recall@10": 0.5,
+          "top5": [
+            "aiact:art:11:2",
+            "aiact:art:11:1",
+            "aiact:art:11:3",
+            "aiact:art:18:1",
+            "aiact:anx:VI:4"
+          ]
+        },
+        {
+          "id": "q31",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:50"
+          ],
+          "first_hit_rank": 2,
+          "rr": 0.5,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:3",
+            "aiact:art:50:2",
+            "aiact:art:50:4"
+          ]
+        },
+        {
+          "id": "q32",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:49",
+            "aiact:art:71"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:49:5",
+            "aiact:art:49:1",
+            "aiact:art:71:1",
+            "aiact:art:26:8",
+            "aiact:art:49:2"
+          ]
+        },
+        {
+          "id": "q33",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:73"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:73:2",
+            "aiact:art:3",
+            "aiact:art:73:1",
+            "aiact:art:73:6",
+            "aiact:art:73:4"
+          ]
+        },
+        {
+          "id": "q34",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:85"
+          ],
+          "first_hit_rank": 24,
+          "rr": 0.041666666666666664,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "aiact:art:22:4",
+            "gdpr:art:83:3",
+            "aiact:art:54:5",
+            "gdpr:art:77:1",
+            "gdpr:art:82:1"
+          ]
+        },
+        {
+          "id": "q35",
+          "lang": "de",
+          "scope": "aiact",
+          "gold": [
+            "aiact:art:57"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "aiact:art:57:17",
+            "aiact:art:60:7",
+            "aiact:art:57:15",
+            "aiact:art:57:1",
+            "aiact:art:57:2"
+          ]
+        },
+        {
+          "id": "q36",
+          "lang": "de",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:17"
+          ],
+          "first_hit_rank": 3,
+          "rr": 0.3333333333333333,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:16",
+            "gdpr:art:34:4",
+            "gdpr:art:17:1",
+            "aiact:art:60:5",
+            "gdpr:art:15:3"
+          ]
+        },
+        {
+          "id": "q37",
+          "lang": "de",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:5"
+          ],
+          "first_hit_rank": 1,
+          "rr": 1.0,
+          "recall@5": 1.0,
+          "recall@10": 1.0,
+          "top5": [
+            "gdpr:art:5:2",
+            "gdpr:art:2:3",
+            "gdpr:art:29",
+            "gdpr:art:4",
+            "gdpr:art:68:6"
+          ]
+        },
+        {
+          "id": "q38",
+          "lang": "de",
+          "scope": "gdpr",
+          "gold": [
+            "gdpr:art:83"
+          ],
+          "first_hit_rank": null,
+          "rr": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "aiact:anx:VIII:B:6",
+            "aiact:anx:VIII:B:7",
+            "aiact:art:112:4",
+            "aiact:anx:VIII:B"
+          ]
+        },
+        {
+          "id": "q39",
+          "lang": "de",
+          "scope": "both",
+          "gold": [
+            "aiact:art:50",
+            "gdpr:art:13"
+          ],
+          "first_hit_rank": 31,
+          "rr": 0.03225806451612903,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "top5": [
+            "gdpr:art:28:1",
+            "aiact:art:52:2",
+            "gdpr:art:88:3",
+            "aiact:art:52:1",
+            "aiact:anx:VII:3"
+          ]
+        }
+      ]
+    }
+  }
+}
