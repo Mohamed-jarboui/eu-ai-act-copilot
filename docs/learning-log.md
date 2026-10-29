@@ -213,3 +213,72 @@ Skip it (or, better in a later version, record it with its target regulation). R
 - **Licence line:** read the current EUR-Lex legal notice (https://eur-lex.europa.eu/content/legal-notice/legal-notice.html) and replace the "to verify" sentence in `docs/data-card.md` with what it really says.
 - **Model names:** the default Gemini and Groq model names in `src/copilot/llm/gemini.py` and `groq.py` were not verified against the providers' current lists. Check them before the first live call.
 - **Gemini retries:** confirm that the `google-genai` client does not retry on its own (see Stage 0, question 2).
+
+---
+
+## Stage 2: retrieval
+
+### Status: the vector numbers are not in yet
+
+The first live run embedded all English chunks (1084 distinct texts) and then hit Gemini's free-tier **daily** limit (1000 embedding requests per day, "retry in about 16h"). The only results so far are BM25 on all 37 scored questions (`results/retrieval_bm25_all.json`). To finish, rerun the commands in `evals/README.md` ("Finishing the vector results") once per day, or enable billing on the key (your call). Until then there is no honest answer to "which method wins".
+
+### TODO #3, #4, #5: `rrf_fuse`, `recall_at_k`, `reciprocal_rank`
+
+| # | File | Formula |
+|---|---|---|
+| 3 | `src/copilot/retrieve/fusion.py` | `score(d) = sum over rankings r containing d of 1 / (k + rank_r(d))`, rank starting at 1, `k = 60`; sort by score, ties in first-seen order |
+| 4 | `src/copilot/retrieve/metrics.py` | `recall@k = |{g in gold : some retrieved r in the top k has is_hit(r, g)}| / |gold|` |
+| 5 | same | `RR = 1 / rank of the first hit` (0 if none); `MRR = mean(RR)` |
+
+How to know you're done: the `mine` cases in `tests/test_retrieve_fusion_metrics.py` stop being xfail (remove the markers), then set `IMPL = "mine"` in `evals/run_retrieval.py` and rerun. **The numbers must not change.** You can already check #4 and #5 against the BM25 run, which used the reference implementation on 37 questions:
+
+| Method | recall@5 | recall@10 | MRR |
+|---|---|---|---|
+| bm25 | 0.694 | 0.797 | 0.652 |
+
+(`python evals/run_retrieval.py --methods bm25 --tag bm25_all` with your implementation should print exactly these.) #3 can only be checked against the vector runs, but its tests have exact expected scores.
+
+<details>
+<summary>Reference implementations (they live in <code>src/copilot/retrieve/_reference.py</code>; try yours first)</summary>
+
+```python
+def rrf_fuse(rankings, k=60):
+    scores = {}
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    return sorted(scores.items(), key=lambda item: -item[1])  # sorted() is stable: ties keep order
+
+
+def recall_at_k(ranked, gold, k):
+    top = ranked[:k]
+    return sum(1 for g in gold if any(is_hit(r, g) for r in top)) / len(gold)
+
+
+def reciprocal_rank(ranked, gold):
+    for rank, r in enumerate(ranked, start=1):
+        if any(is_hit(r, g) for g in gold):
+            return 1.0 / rank
+    return 0.0
+```
+
+</details>
+
+### What the BM25 run does show (37 questions, 1092 chunks per language)
+
+- Where the first gold hit lands: rank 1 for 22 questions, ranks 2 to 5 for 5, ranks 6 to 10 for 3, ranks 11 to 50 for 6, outside the top 50 for 1.
+- By question language, recall@10 / MRR: German 0.625 / 0.578 (n=12), English 0.846 / 0.610 (n=13), French 0.917 / 0.772 (n=12). By scope: AI Act 0.804 / 0.672 (n=23), GDPR 0.900 / 0.663 (n=10), questions needing both regulations 0.500 / 0.514 (n=4). With 4 to 13 questions per cell, differences of this size could be noise.
+- **Most misses are vocabulary mismatches**, checked against the texts: q38 asks for "Bußgelder" but GDPR Art. 83 (German) says "Geldbußen" and never "Bußgeld" (not in the top 50); q04 says "banned" while Art. 99 says "prohibition"; q03 says "chatbot", which Art. 50 never uses ("interact directly with natural persons"); q34 uses the verb "beschweren" while Art. 85 has "Beschwerde", and my crude stemmer maps them to different tokens (`beschwer` vs `beschwerd`). q28 is not explained: Art. 16 is titled almost like the question and still ranks 32nd, and I did not isolate why.
+- Known weakness of the tokenizer, seen but not fixed: "practices" becomes `practic` while "practice" stays `practice`. Fixing it after seeing the misses would be tuning on the test set, so any such change should be a separate, documented commit, ideally judged on questions not in this set.
+- Hypothesis, **not a result**: dense embeddings should help exactly on these paraphrase misses, and hybrid should keep BM25's exact-term wins. The vector runs will confirm or refute that.
+
+### Questions and answers
+
+**1. Why does reciprocal rank fusion use ranks and not scores, and what does `k` do?**
+A BM25 score and a cosine similarity are on different scales (BM25 is unbounded and depends on the query length and the corpus, cosine sits between -1 and 1), so adding or averaging them would let one ranker dominate by accident. Ranks are comparable across rankers by construction. `1 / (k + rank)` rewards a high place in any list, and a document found by both rankers gets two contributions. `k` controls how steep the reward is: with `k = 1` rank 1 is worth 1/2 and rank 2 is worth 1/3 (big gap), with `k = 60` they are worth 1/61 and 1/62 (almost the same), so the fused order depends on how many lists agree and not on tiny rank differences. A document in only one list is not discarded, it just scores less.
+
+**2. Why does `anchor_id` exist, and what would have happened to q15 without it?**
+q15 ("how does the regulation define an AI system?") has gold `aiact:art:3`. The corpus splits that article into `definition` units with ids like `aiact:def:1`, and the matching rule (equal to the gold id, or starting with it plus `:`) cannot match them. The whole article is not indexed as a chunk (it holds 68 definitions in one block), so nothing retrievable could hit the gold id and recall for q15 would be 0 for every method however good it is. `anchor_id` maps a definition to its parent article before matching. It is the only deviation from the README rule, documented in `evals/README.md` and worth your explicit approval, because it changes what counts as a hit.
+
+**3. What failed on the first live run, why did waiting not help, and what did the cache buy us?**
+Gemini's free tier has a per-day cap (1000 embedding texts), which is a different limit from the per-minute rate limit the router's backoff is built for. My first embedder retried for about 20 minutes against a limit that resets in about 16 hours. Now it detects the `PerDay` error and stops immediately (`QuotaExhaustedError`, with a test). The disk cache means nothing is embedded twice: the 1084 English embeddings, the 5 query embeddings done so far, and later every rerank score survive the failure, so each daily rerun continues where the last stopped and costs nothing for what is already done. The lesson is to check quotas and plan the cost before a long job, and to make jobs resumable.
