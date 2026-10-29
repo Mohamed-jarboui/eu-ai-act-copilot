@@ -282,3 +282,81 @@ q15 ("how does the regulation define an AI system?") has gold `aiact:art:3`. The
 
 **3. What failed on the first live run, why did waiting not help, and what did the cache buy us?**
 Gemini's free tier has a per-day cap (1000 embedding texts), which is a different limit from the per-minute rate limit the router's backoff is built for. My first embedder retried for about 20 minutes against a limit that resets in about 16 hours. Now it detects the `PerDay` error and stops immediately (`QuotaExhaustedError`, with a test). The disk cache means nothing is embedded twice: the 1084 English embeddings, the 5 query embeddings done so far, and later every rerank score survive the failure, so each daily rerun continues where the last stopped and costs nothing for what is already done. The lesson is to check quotas and plan the cost before a long job, and to make jobs resumable.
+
+---
+
+## Stage 3: answers, API and chat page
+
+### New TODO(me) items
+
+| # | File | What to implement |
+|---|---|---|
+| 6 | `src/copilot/answer/citations.py` | `parse_citation(label) -> cite id or None`: `"AI Act Art. 6(2)"` becomes `"aiact:art:6:2"` |
+| 7 | `src/copilot/answer/refusal.py` | `should_refuse(evidence) -> bool`: refuse before any model call when retrieval is empty or weak |
+
+The app runs on my versions from `src/copilot/answer/_reference.py` (`IMPL = "reference"` in `answer/impl.py`) until yours pass their tests. For #6 the test `test_every_corpus_label_round_trips` turns every one of the 1092 indexed chunks into its label and asks your parser to turn it back, so any pattern you forget shows up with the exact id. For #7 the placeholder only refuses when nothing was retrieved; the cosine part is yours.
+
+**Read this before writing #7: BM25 scores cannot tell out-of-scope questions from in-scope ones.** `make calibrate` (no API calls) prints, per gold question, the best BM25 score per query token: in-scope questions (n=37) range from 1.04 to 4.09 (median 1.77); the 3 out-of-scope questions score 0.00, 2.50 and 2.69, right inside that range, because "What is the best GPU for training a large language model?" shares words like "training" and "model" with the AI Act. Cosine similarity of the best vector hit is the better signal, but at the end of this session it is known for only 7 of the 37 in-scope questions (0.699 to 0.783, all English) and 1 of the 3 out-of-scope ones (the GPU question: 0.599), because the bulk embedding quota ran out (single-text query embeddings still went through). A threshold between 0.60 and 0.70 would separate those 8 questions, but that is 1 negative against 7 positives, so the threshold is not set. Plan: embed the 40 gold questions (about 40 texts), rerun `make calibrate`, and set `COSINE_MIN` (reference) or your own number, stating the sample sizes. With only 3 negatives it will stay weak: add about 10 out-of-scope questions to the gold set first.
+
+<details>
+<summary>Reference implementations (try yours first)</summary>
+
+```python
+def parse_citation(label):
+    label = " ".join(label.split())
+    if match := _ARTICLE.match(label):  # "(AI Act|GDPR) Art. N(a)(b)..."
+        regulation = _REGULATION[re.sub(r"\s+", " ", match.group(1).lower())]
+        parts = re.findall(r"\(\s*(\w+)\s*\)", match.group(3))
+        return ":".join([regulation, "art", match.group(2).lower(), *[p.lower() for p in parts]])
+    if match := _ANNEX.match(label):  # "(AI Act|GDPR) Annex III[, Section A][, point 1]"
+        ...  # same idea: regulation, "anx", numeral, optional section and point
+    return None
+
+
+def should_refuse(evidence):
+    if evidence.n_sources == 0:
+        return True
+    if COSINE_MIN is not None and evidence.top_cosine is not None:
+        return evidence.top_cosine < COSINE_MIN
+    return False  # bm25 mode, or gate not calibrated: later safeguards decide
+```
+
+</details>
+
+### Four safeguards, not one
+
+A wrong answer can get through at four places, so there are four layers:
+
+1. **Empty or weak retrieval** (`should_refuse`): no model call at all.
+2. **The model's own `NOT_COVERED`**: the prompt tells it to answer exactly that when the sources do not answer the question. This is what refused the GPU question in the first live test, while BM25 alone would have let it through.
+3. **Citation validation**: a citation that is unparsable or not among the supplied sources removes its sentence without asking anyone.
+4. **The grounding check**: a second cheap model call judges every remaining sentence against the sources it cites; unsupported ones are removed, listed in `removed_sentences`, and `grounded` becomes false. If nothing survives, the answer is a refusal. If the checker itself is down, nothing can be verified: sentences with a valid citation are kept, the rest are removed, and `grounding_check` says `unavailable`.
+
+### What the real runs taught us (all measured on 2026-10-29)
+
+- **Model names go stale, and a model list lies.** `gemini-2.5-flash` and `-flash-lite` were in the list the API returned but answered `404 no longer available to new users`. The defaults are now `gemini-3.6-flash` (answers) and `gemini-3.1-flash-lite` (cheap checks), each tested with a real call. `gemini-3.8-flash`, the one the error message recommended, answered `503 high demand` or hung.
+- **This is your Stage 0 TODO in the wild.** That 404 became a `BadRequestError`, and the placeholder `should_fallback` returns False for it, so the request failed even though Groq was configured and could have answered. Whether a "model not found" belongs with "bad request" (never fall back) or with "this provider cannot serve us" (fall back) is exactly the question the TODO asks.
+- **Timeouts matter.** One test call to `gemini-3.8-flash` hung for minutes because the SDK had no useful default; both providers now have a 60 s timeout, which the router treats as a retryable `ServerError`.
+- **Thinking time dominates latency.** On one prompt (a single test, noisy) the default Gemini setting took 7 to 22 s for about 210 output tokens; `thinking_level="MINIMAL"` gave the same answer in 2.7 s. The answer model uses minimal thinking because it extracts from supplied sources and does not need to reason. Streaming shows the first text early either way.
+- **Groq's free tier caps its large model at 8000 tokens per minute**, which a few of our 2,000-token prompts per minute exceed. The generation chain is now the lite Gemini model first (it answered every test call in 1 to 2 s), the larger Gemini model second, and Groq last, with 30 s timeouts and 3 s backoff so a "try again in 5 s" limit is actually waited out. Which models answered is reported in `usage.models`.
+- **A source cut off silently loses content.** My first limit of 1,500 characters per source dropped five of the eight prohibited practices in Art. 5(1) (4,701 characters). It is 6,000 now.
+
+- **Latency is mostly provider load, not our pipeline.** In the 10 README examples (after the reorder) per-question time was 1.7 to 70 s: five took 4.3 s or less and five took 15 s or more. Asked again minutes later, three of the slow ones took 3.4, 4.1 and 3.4 s (about 2 s generating, 1.5 s checking). I did not isolate the cause of the slow runs; 503 "high demand" and Groq rate-limit waits are the candidates. In the first run, before the reorder, examples took 10 to 87 s.
+- **"Grounded" is not "correct" or "complete".** Example 7 (an employer detecting emotions) is grounded sentence by sentence and cites real articles, yet never states the actual prohibition in Art. 5(1)(f), because BM25 did not retrieve it. The check verifies faithfulness to the sources given, not that the right sources were found. Two examples (the bank loan and the French definition of an AI system) were refused because retrieval missed the right articles, the same misses the Stage 2 BM25 run showed.
+
+### Questions and answers
+
+**1. Why does the system have four layers that can refuse or remove text, and why is a BM25 threshold not one of them?**
+Each layer catches a different failure: retrieval found nothing or something unrelated (cheap, no model call), retrieval found plausible but non-answering text (the model says `NOT_COVERED`), the model cited something it was not given (validation), or the model stated more than the sources say (grounding check). A BM25 threshold does not work because the score depends on the query length and the corpus statistics, and measured on the gold set the out-of-scope questions score inside the in-scope range (per token: 2.50 and 2.69 against 1.04 to 4.09). Cosine similarity has a fixed scale, which is why that gate exists, but it is not calibrated yet.
+
+**2. Why is a citation to "Art. 6" accepted when the source is "Art. 6(2)", but "Art. 6(1)" is rejected, and what does the rule protect against?**
+`supports(cited, source)` accepts equal ids or one containing the other (an ancestor or a descendant). Citing the article when the model was shown one of its paragraphs is a fair summary, and citing a point below a paragraph is fair too, so both are still checked against the source text by the grounding call. Siblings are rejected because a different paragraph was never shown to the model, so a sentence citing it cannot have come from what was supplied: the model is fabricating a plausible-looking reference, which is the most damaging error for a legal assistant. Such sentences are dropped without asking the checker.
+
+**3. Why is the streamed text only a draft, and why does the router fall back only before the first chunk?**
+The grounding check needs the whole answer, so it runs after streaming, and it may remove sentences. The page therefore shows the stream as grey italic text and replaces it with the `final` event, the only verified version. The router can retry or switch provider only until the first event arrives, because after that the user has already seen text: switching mid-answer would repeat or contradict it, so an error at that point is raised and the draft is discarded.
+
+### Open items for tomorrow (the quota resets about 08:00; the evaluation task starts at 08:10)
+
+1. Embed the remaining gold questions (single-text calls kept working after the bulk quota was spent, so this should be possible at any time; if the evaluation job's final query step fails on quota, that is why), then rerun `make calibrate` and `make examples`.
+2. Set the refusal threshold from that data (TODO #7), and add out-of-scope questions to the gold set.
+3. When the evaluation finishes (about three days), check which retrieval method is actually best before treating hybrid as the default.
