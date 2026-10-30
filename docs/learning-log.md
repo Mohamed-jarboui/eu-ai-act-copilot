@@ -369,3 +369,20 @@ The grounding check needs the whole answer, so it runs after streaming, and it m
 1. Embed the remaining gold questions (single-text calls kept working after the bulk quota was spent, so this should be possible at any time; if the evaluation job's final query step fails on quota, that is why), then rerun `make calibrate` and `make examples`.
 2. Set the refusal threshold from that data (TODO #7), and add out-of-scope questions to the gold set.
 3. When the evaluation finishes (about three days), check which retrieval method is actually best before treating hybrid as the default.
+
+---
+
+## Stage 4A: agent design (no code)
+
+The design is in `docs/agent-design.md`. Owner decisions (2026-10-29): LangGraph for the graph only (models through our provider layer), `classify_ai_risk` = the model extracts facts and rules decide, a stateless API for now, and an indicative compliance report that lists its assumptions and missing facts.
+
+### Questions and answers
+
+**1. Why is the compliance check a fixed plan, while ordinary questions get a search loop?**
+For a compliance check the structure is known before starting: classify the system, list the obligations for each role, check the GDPR overlap, report. A fixed plan can be shown to the user before it runs, tested step by step, and checked in traces ("did the run visit every step?"). For an ordinary question we do not know in advance which provisions are needed or whether the first search will find them, so a short loop (rewrite, search, grade, at most 2 re-searches) adapts to what retrieval returns. The general rule from `design.md`: a workflow wherever the steps are known, an agent loop only where they are not, and even then a capped one.
+
+**2. Why does `classify_ai_risk` let rules decide the category instead of the model?**
+Because the category is the most consequential output and has to be auditable. The model only does what it is good at, turning a free-text description into a fixed checklist of facts, each tied to a phrase of the description. The decision is then a deterministic rule table over Art. 5, Art. 6 and Annex III: the same facts always give the same category, every row has a test case, and the table can be reviewed against the text. A fact the description does not settle stays "unknown", which makes the result "undetermined" and turns into a question for the user, instead of the model filling the gap with a plausible guess. The cost is coverage: a situation the rules do not foresee gets "undetermined", which is the honest outcome for an indicative tool.
+
+**3. What happens when a run hits its token budget in the middle, and why does the budget guard keep some budget back?**
+The run does not crash and does not return an unchecked answer. It ends with `status = "partial"` and `limit_hit = "tokens"`: if a grounded draft exists it is returned with what it covers, a compliance run returns its completed steps and missing facts, and the answer says plainly that it is partial. The guard reserves one model call and about 6,000 tokens for the grounding check, because the most dangerous output is a fluent draft that nobody verified; without the reserve, a run that spent everything on searching would have to choose between showing an unchecked draft and showing nothing. With it, the last draft can still be checked, and if even that is impossible the draft is withheld and a refusal is returned.
