@@ -11,7 +11,7 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #151514; --panel: #1f1f1d; --text: #ececE8; --muted: #9a9a94; --line: #34342f;
+      --bg: #151514; --panel: #1f1f1d; --text: #ecece8; --muted: #9a9a94; --line: #34342f;
       --accent: #7aa7ee; --ok: #5cc98a; --warn: #e0a24a; --bad: #f08a82;
     }
   }
@@ -20,7 +20,10 @@
          font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 760px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 1.25rem; margin: 8px 0 2px; }
-  .sub { color: var(--muted); font-size: .875rem; margin: 0 0 16px; }
+  .sub { color: var(--muted); font-size: .875rem; margin: 0 0 12px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: .875rem; margin-bottom: 12px; }
+  .modes label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .modes button { font-size: .8rem; padding: 4px 10px; }
   #log { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
   .msg { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
   .msg.user { border-color: var(--accent); }
@@ -34,6 +37,11 @@
   details { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
   details summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
   details p { margin: 6px 0 2px; font-size: .875rem; color: var(--muted); overflow-wrap: anywhere; }
+  details.steps summary { font-weight: 500; color: var(--accent); }
+  details.steps ol { margin: 6px 0 0; padding-left: 22px; font-size: .8rem; color: var(--muted); }
+  details.steps li { margin: 2px 0; overflow-wrap: anywhere; }
+  details.steps li.err { color: var(--warn); }
+  details.steps li.key { color: var(--text); }
   .removed { margin-top: 8px; font-size: .8rem; color: var(--warn); }
   .usage { margin-top: 8px; font-size: .75rem; color: var(--muted); }
   form { position: sticky; bottom: 0; background: var(--bg); padding: 8px 0 12px; display: grid;
@@ -43,7 +51,7 @@
   .side { display: flex; flex-direction: column; gap: 8px; }
   select, button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
                    background: var(--panel); color: inherit; }
-  button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+  button[type=submit] { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
   button:disabled { opacity: .55; cursor: wait; }
   .note { color: var(--muted); font-size: .75rem; }
 </style>
@@ -53,9 +61,14 @@
   <h1>EU AI Act Copilot</h1>
   <p class="sub">Questions about the AI Act and the GDPR in English, French or German, answered only from the
     official texts, with article citations. Information about the texts, not legal advice.</p>
+  <div class="modes">
+    <label><input type="radio" name="mode" value="agent" checked> Agent (routing, tools, compliance checks)</label>
+    <label><input type="radio" name="mode" value="ask"> Quick answer</label>
+    <button id="reset" type="button" title="Start a new conversation thread">New conversation</button>
+  </div>
   <div id="log" aria-live="polite"></div>
   <form id="form">
-    <textarea id="q" placeholder="Ask a question, e.g. Does a chatbot have to say it is a machine?" required minlength="3"></textarea>
+    <textarea id="q" placeholder="Ask a question, or describe your AI system for a compliance check" required minlength="3"></textarea>
     <div class="side">
       <select id="lang" aria-label="Language">
         <option value="">Auto</option><option value="en">English</option>
@@ -64,17 +77,18 @@
       <button id="send" type="submit">Ask</button>
     </div>
   </form>
-  <p class="note">The grey italic text is a draft while the answer is being checked against its sources.</p>
+  <p class="note">Grey italic text is a draft or progress note; only the final answer has been checked against its sources.</p>
 </main>
 <script>
 const log = document.getElementById("log");
 const form = document.getElementById("form");
 const send = document.getElementById("send");
+let threadId = null;  // agent conversations continue in the same thread (clarifying questions)
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
-  if (text !== undefined) node.textContent = text;   // never innerHTML: model output is untrusted
+  if (text !== undefined) node.textContent = text;   // never as HTML: model output is untrusted
   return node;
 }
 function addMessage(kind) {
@@ -84,8 +98,36 @@ function addMessage(kind) {
   return box;
 }
 function badge(parent, text, cls) { parent.appendChild(el("span", "badge " + (cls || ""), text)); }
+function citations(box, list) {
+  for (const c of list) {
+    const d = el("details");
+    d.appendChild(el("summary", "", c.label));
+    d.appendChild(el("p", "", c.snippet));
+    box.appendChild(d);
+  }
+}
 
-function renderFinal(box, a) {
+async function* sse(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    buffer += decoder.decode(value, { stream: true });
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0) {
+      const frame = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
+      const event = (frame.match(/^event: (.*)$/m) || [])[1];
+      const data = JSON.parse((frame.match(/^data: (.*)$/m) || [, "null"])[1]);
+      yield [event, data];
+    }
+  }
+}
+
+// --- quick answer (/ask/stream) ---------------------------------------------------------------
+
+function renderAnswer(box, a) {
   box.replaceChildren(el("div", "text", a.answer));
   const badges = el("div", "badges");
   if (a.refused) badge(badges, "no answer: " + a.refusal_reason, "warn");
@@ -95,55 +137,102 @@ function renderFinal(box, a) {
   badge(badges, "retrieval: " + a.retrieval_mode);
   badge(badges, "language: " + a.language);
   box.appendChild(badges);
-  for (const c of a.citations) {
-    const d = el("details");
-    d.appendChild(el("summary", "", c.label));
-    d.appendChild(el("p", "", c.snippet));
-    box.appendChild(d);
-  }
-  if (a.removed_sentences.length) {
-    box.appendChild(el("div", "removed", "Removed: " + a.removed_sentences.join(" | ")));
-  }
+  citations(box, a.citations);
+  if (a.removed_sentences.length) box.appendChild(el("div", "removed", "Removed: " + a.removed_sentences.join(" | ")));
   for (const n of a.retrieval_notes) box.appendChild(el("div", "removed", n));
   const u = a.usage;
   const tokens = u.input_tokens === null ? "tokens n/a" : u.input_tokens + " in / " + u.output_tokens + " out tokens";
   box.appendChild(el("div", "usage", `${(u.total_ms / 1000).toFixed(1)} s · ${tokens} · ${u.model_calls} model call(s)`));
 }
 
-async function ask(question, language) {
+async function quick(question, language) {
   const box = addMessage("bot");
   const draft = el("div", "text draft", "Searching the texts…");
   box.appendChild(draft);
   const body = { question };
   if (language) body.language = language;
-  const response = await fetch("/ask/stream", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    box.replaceChildren(el("div", "text", "Error " + response.status + ": " + (await response.text())));
-    return;
+  const response = await fetch("/ask/stream", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!response.ok) { box.replaceChildren(el("div", "text", "Error " + response.status + ": " + (await response.text()))); return; }
+  let text = "";
+  for await (const [event, data] of sse(response)) {
+    if (event === "sources") draft.textContent = `Reading ${data.length} source(s)…`;
+    else if (event === "delta") { text += data; draft.textContent = text; }
+    else if (event === "final") renderAnswer(box, data);
+    else if (event === "error") box.replaceChildren(el("div", "text", data.detail));
   }
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "", text = "";
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let cut;
-    while ((cut = buffer.indexOf("\n\n")) >= 0) {
-      const frame = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
-      const event = (frame.match(/^event: (.*)$/m) || [])[1];
-      const data = JSON.parse((frame.match(/^data: (.*)$/m) || [, "null"])[1]);
-      if (event === "sources") draft.textContent = `Reading ${data.length} source(s)…`;
-      else if (event === "delta") { text += data; draft.textContent = text; }
-      else if (event === "final") renderFinal(box, data);
-      else if (event === "error") box.replaceChildren(el("div", "text", data.detail));
-    }
-  }
-  box.scrollIntoView({ block: "end" });
 }
 
+// --- agent (/agent) with the reasoning panel ---------------------------------------------------
+
+function short(value) {
+  const s = typeof value === "string" ? value : JSON.stringify(value);
+  return s.length > 140 ? s.slice(0, 140) + "…" : s;
+}
+function describe(e) {
+  const d = e.data || {};
+  switch (e.type) {
+    case "input_guard": return d.blocked ? [`Input blocked (${d.reason})`, "err"] : d.flagged ? ["Suspicious text removed from the question", "err"] : null;
+    case "route": return [`Route: ${d.route} (confidence ${d.confidence}, ${d.method})` + (d.reference ? ` → ${d.reference}` : "") + (d.clarify ? " → asking a clarifying question" : ""), "key"];
+    case "plan": return ["Plan: " + d.steps.join(" → "), "key"];
+    case "rewrite": return ["Search queries: " + d.queries.map(q => q.split("|")[1] + " [" + q.split("|")[0] + "]").join("; ")];
+    case "tool_call": return [`Tool: ${d.tool}(${short(d.args)})`];
+    case "tool_result": return d.error ? [`  → ${d.error}: ${d.message}`, "err"] : [`  → ${d.summary || "ok"}${d.repeated ? " (repeated call, earlier result reused)" : ""} · ${d.ms} ms`];
+    case "grade": return [`Grade: ${d.decision}` + (d.relevant ? ` (relevant: ${d.relevant.join(", ")})` : "") + (d.reason ? ` · ${d.reason}` : ""), "key"];
+    case "model_call": return [`Model for ${d.purpose}: ${(d.models || []).join(", ")} · ${d.ms} ms` + ((d.failed || []).length ? ` · ${d.failed.length} failed attempt(s) first` : "")];
+    case "step": return [`Step ${d.step}: ${d.status} · ${d.summary}`, "key"];
+    case "draft": return [`Draft written (${d.words} words) from: ${(d.sources || []).join(", ")}`];
+    case "ground": return [`Grounding check: kept ${d.kept}, removed ${d.removed}` + (d.invalid_citation ? ", invalid citation" : "") + ` (round ${d.round})`, "key"];
+    case "guard": return [`Guard: ${d.rule}`, "err"];
+    case "loop": return [`Repeated call stopped: ${d.tool}`, "err"];
+    case "limit": return [`Limit reached: ${d.limit}`, "err"];
+    case "partial": return ["Returning a partial result", "err"];
+    case "error": return [`Error: ${d.error}`, "err"];
+    default: return null;  // "node" and "output" are too noisy for the panel
+  }
+}
+
+function renderAgent(box, a, steps) {
+  box.replaceChildren(el("div", "text", a.answer));
+  const badges = el("div", "badges");
+  badge(badges, "route: " + (a.route || "none"));
+  if (a.status === "partial") badge(badges, "partial: " + (a.limit_hit || "stopped"), "bad");
+  else if (a.status === "clarify") badge(badges, "clarifying question", "warn");
+  else if (a.status === "refused" || a.status === "blocked") badge(badges, "no answer: " + (a.refusal_reason || a.status), "warn");
+  else if (a.grounded) badge(badges, "grounded", "ok");
+  else badge(badges, a.removed_sentences.length + " unsupported sentence(s) removed", "warn");
+  if (a.retrieval_mode) badge(badges, "retrieval: " + a.retrieval_mode);
+  badge(badges, "language: " + a.language);
+  box.appendChild(badges);
+  citations(box, a.citations);
+  if (a.removed_sentences.length) box.appendChild(el("div", "removed", "Removed: " + a.removed_sentences.join(" | ")));
+  box.appendChild(steps);
+  const u = a.usage;
+  box.appendChild(el("div", "usage", `${u.elapsed_s.toFixed(1)} s · ${u.input_tokens} in / ${u.output_tokens} out tokens · ${u.model_calls} model call(s) · ${u.tool_calls} tool call(s) · ${u.steps} steps`));
+}
+
+async function agent(question, language) {
+  const box = addMessage("bot");
+  const status = el("div", "text draft", "Routing the question…");
+  const steps = el("details", "steps");
+  steps.appendChild(el("summary", "", "Show reasoning steps"));
+  const list = el("ol");
+  steps.appendChild(list);
+  box.append(status, steps);
+  const body = { question };
+  if (language) body.language = language;
+  if (threadId) body.thread_id = threadId;
+  const response = await fetch("/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!response.ok) { box.replaceChildren(el("div", "text", "Error " + response.status + ": " + (await response.text()))); return; }
+  for await (const [event, data] of sse(response)) {
+    if (event === "trace") {
+      const line = describe(data);
+      if (line) { list.appendChild(el("li", line[1] || "", line[0])); status.textContent = line[0]; }
+    } else if (event === "final") { threadId = data.thread_id; renderAgent(box, data, steps); }
+    else if (event === "error") box.replaceChildren(el("div", "text", data.detail));
+  }
+}
+
+document.getElementById("reset").addEventListener("click", () => { threadId = null; log.replaceChildren(); });
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = document.getElementById("q").value.trim();
@@ -151,7 +240,9 @@ form.addEventListener("submit", async (e) => {
   addMessage("user").appendChild(el("div", "text", question));
   document.getElementById("q").value = "";
   send.disabled = true;
-  try { await ask(question, document.getElementById("lang").value); }
+  const mode = document.querySelector("input[name=mode]:checked").value;
+  const language = document.getElementById("lang").value;
+  try { await (mode === "agent" ? agent(question, language) : quick(question, language)); }
   catch (err) { addMessage("bot").appendChild(el("div", "text", "Request failed: " + err)); }
   finally { send.disabled = false; }
 });
