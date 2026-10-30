@@ -386,3 +386,20 @@ Because the category is the most consequential output and has to be auditable. T
 
 **3. What happens when a run hits its token budget in the middle, and why does the budget guard keep some budget back?**
 The run does not crash and does not return an unchecked answer. It ends with `status = "partial"` and `limit_hit = "tokens"`: if a grounded draft exists it is returned with what it covers, a compliance run returns its completed steps and missing facts, and the answer says plainly that it is partial. The guard reserves one model call and about 6,000 tokens for the grounding check, because the most dangerous output is a fluent draft that nobody verified; without the reserve, a run that spent everything on searching would have to choose between showing an unchecked draft and showing nothing. With it, the last draft can still be checked, and if even that is impossible the draft is withheld and a refusal is returned.
+
+---
+
+## Stage 4B: the agent (implemented, no TODO(me) by request)
+
+The implementation is in `src/copilot/agent/`; what changed from the design, and why, is in section 10 of `docs/agent-design.md`. Three real runs are in `docs/traces/`.
+
+### Questions and answers
+
+**1. In a real run the model listed high-risk obligations for a system that was never classified. Why was the instruction "never decide the category yourself" not enough, and what makes the fix reliable?**
+An instruction is a request to a probabilistic model: when the classifier failed, the model in the next step filled the gap with the most plausible category, which is exactly what it is trained to do. The fix moves the rule from the prompt into code: `list_obligations` is an action the agent asks for, and the action guard checks it against the state before running it. Without a stored classification the call is refused; with one, the `category` argument must match it. The model can still try, but it can no longer succeed, and the refusal (with a message saying why) is visible in the trace. The general lesson from `design.md`: put the rules that must always hold in validators and guards, and keep prompts for what may vary.
+
+**2. The router scored 70 of 74 in one run and 67 of 74 in an identical run. What does that mean for how routing quality should be reported and tested?**
+The router is a model call, so the same question can be routed differently from one run to the next; one accuracy figure from one run overstates how stable it is. Report results with their sample size and the run-to-run spread, and for reliability measure pass^k (the share of questions routed correctly in all k repeated runs), which `design.md` lists as a metric. Unit tests cannot pin the model's choices, so they test what is deterministic: the rule-based lookup detection on the labelled set, the parsing of the model's output, and the policy applied after it (`settle`: clarification, the lookup fallback). The model's accuracy is measured separately, live, by `evals/run_router.py`.
+
+**3. Why does a limit stop the run with a "partial" result instead of raising an error, and why can the last check still run after the step limit is hit?**
+A limit is an expected outcome of a bounded agent, not a bug: the user should get whatever is solid so far, clearly flagged, and the API should not fail. So every node runs inside a wrapper that turns a limit (or a provider failure) into `status = "partial"`, and every edge then leads to `finalize_partial` and `output`. The one thing that must never happen is showing an unchecked draft. That is why the budget keeps a reserve (one model call and 6,000 tokens) for the grounding check, and why the step limit does not block that final check: it is not new work, it is the verification of work already done. If even the reserve or the clock is spent, or the checker cannot run, the draft is withheld and a refusal is returned.
