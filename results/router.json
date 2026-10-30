@@ -1,0 +1,1259 @@
+{
+  "date": "2026-10-30",
+  "threshold": 0.6,
+  "n_labelled": 74,
+  "accuracy": 0.905,
+  "n_clear": 70,
+  "accuracy_clear": 0.943,
+  "per_route": {
+    "legal_question": {
+      "n": 37,
+      "correct": 30
+    },
+    "out_of_scope": {
+      "n": 15,
+      "correct": 15
+    },
+    "lookup": {
+      "n": 8,
+      "correct": 8
+    },
+    "compliance_check": {
+      "n": 8,
+      "correct": 8
+    },
+    "compare": {
+      "n": 6,
+      "correct": 6
+    }
+  },
+  "confusion": {
+    "legal_question -> compliance_check": 7
+  },
+  "wrongly_clarified": 0,
+  "vague_n": 3,
+  "vague_clarified": 3,
+  "ms_p50": 1004,
+  "rules_routed": 8,
+  "results": [
+    {
+      "id": "q01",
+      "lang": "en",
+      "question": "Which uses of AI are completely banned in the EU, whoever deploys them?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 2429,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q02",
+      "lang": "en",
+      "question": "Is an AI tool that ranks job applicants considered high-risk?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 38829,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q03",
+      "lang": "en",
+      "question": "Does a chatbot have to tell people they are talking to a machine?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 771,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q04",
+      "lang": "en",
+      "question": "How large can the fine be for using a banned AI practice?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 2882,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q05",
+      "lang": "en",
+      "question": "What must a company do so its staff understand the AI tools they use?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.9,
+      "method": "model",
+      "clarify": false,
+      "ms": 1229,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q06",
+      "lang": "en",
+      "question": "Which events must a high-risk system log automatically while it runs?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 896,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q07",
+      "lang": "en",
+      "question": "What do providers of general-purpose AI models have to publish about their training data?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 540,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q08",
+      "lang": "en",
+      "question": "When does a general-purpose model count as having systemic risk?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 976,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q09",
+      "lang": "en",
+      "question": "Within how many hours must a data breach be reported to the authority?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1302,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q10",
+      "lang": "en",
+      "question": "When is it allowed to process someone's health data?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 679,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q11",
+      "lang": "en",
+      "question": "Can I get a copy of all the personal data a company holds about me?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 1192,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q12",
+      "lang": "en",
+      "question": "A bank's AI model refuses loans automatically. What can the rejected applicant demand?",
+      "route": "legal_question",
+      "ambiguous": true,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 846,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q13",
+      "lang": "en",
+      "question": "A public body deploys a high-risk AI system. Which impact assessments does it need?",
+      "route": "legal_question",
+      "ambiguous": true,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 1022,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q14",
+      "lang": "en",
+      "question": "What is the best GPU for training a large language model?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 944,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q15",
+      "lang": "fr",
+      "question": "Comment le règlement définit-il un système d'IA ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 596,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q16",
+      "lang": "fr",
+      "question": "Quelles obligations a une entreprise qui utilise un système d'IA à haut risque ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 801,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q17",
+      "lang": "fr",
+      "question": "Comment un humain doit-il pouvoir intervenir sur un système à haut risque ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 573,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q18",
+      "lang": "fr",
+      "question": "Quelles exigences s'appliquent aux données d'entraînement d'un système à haut risque ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 858,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q19",
+      "lang": "fr",
+      "question": "Que doit vérifier un importateur avant de vendre un système d'IA à haut risque dans l'UE ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 4385,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q20",
+      "lang": "fr",
+      "question": "À partir de quand le règlement sur l'IA s'applique-t-il ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 3756,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q21",
+      "lang": "fr",
+      "question": "Un employeur peut-il utiliser l'IA pour détecter les émotions de ses salariés ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 4266,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q22",
+      "lang": "fr",
+      "question": "Sur quelles bases juridiques peut-on traiter des données personnelles ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 5204,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q23",
+      "lang": "fr",
+      "question": "Une entreprise doit-elle nommer un délégué à la protection des données ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 5294,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q24",
+      "lang": "fr",
+      "question": "Quand un consentement est-il valable ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 3761,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q25",
+      "lang": "fr",
+      "question": "Puis-je envoyer des données personnelles vers un pays hors de l'UE ?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 4110,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q26",
+      "lang": "fr",
+      "question": "Mon modèle d'IA est entraîné sur des données personnelles : quelles règles sur la qualité des données et sur la licéité du traitement s'appliquent ?",
+      "route": "legal_question",
+      "ambiguous": true,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 4320,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q27",
+      "lang": "fr",
+      "question": "Quel est le taux de TVA en France ?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 4277,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q28",
+      "lang": "de",
+      "question": "Welche Pflichten haben Anbieter von Hochrisiko-KI-Systemen?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 3752,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q29",
+      "lang": "de",
+      "question": "Was muss ein Risikomanagement für Hochrisiko-KI umfassen?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 733,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q30",
+      "lang": "de",
+      "question": "Was gehört in die technische Dokumentation eines Hochrisiko-Systems?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 922,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q31",
+      "lang": "de",
+      "question": "Müssen Deepfakes gekennzeichnet werden?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 19165,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q32",
+      "lang": "de",
+      "question": "Wo werden Hochrisiko-KI-Systeme registriert?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 904,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q33",
+      "lang": "de",
+      "question": "Was muss ein Anbieter tun, wenn sein KI-System einen schweren Vorfall verursacht?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 62927,
+      "models": [
+        "groq:openai/gpt-oss-20b"
+      ]
+    },
+    {
+      "id": "q34",
+      "lang": "de",
+      "question": "Bei wem kann ich mich beschweren, wenn ein KI-System gegen die Verordnung verstößt?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.9,
+      "method": "model",
+      "clarify": false,
+      "ms": 33754,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q35",
+      "lang": "de",
+      "question": "Was sind KI-Reallabore und wer richtet sie ein?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 1181,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q36",
+      "lang": "de",
+      "question": "Wann darf ich verlangen, dass meine Daten gelöscht werden?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 1004,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q37",
+      "lang": "de",
+      "question": "Welche Grundsätze gelten für jede Verarbeitung personenbezogener Daten?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1022,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q38",
+      "lang": "de",
+      "question": "Wie hoch können Bußgelder bei Datenschutzverstößen sein?",
+      "route": "legal_question",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "legal_question",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 5655,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q39",
+      "lang": "de",
+      "question": "Ich biete einen Chatbot an: Muss ich sagen, dass es eine KI ist, und was muss ich über die Datenverarbeitung mitteilen?",
+      "route": "legal_question",
+      "ambiguous": true,
+      "source": "retrieval_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 1359,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "q40",
+      "lang": "de",
+      "question": "Wie berechne ich meine Einkommensteuer in Deutschland?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "retrieval_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 920,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r01",
+      "lang": "en",
+      "question": "What is the capital of Australia?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 902,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r02",
+      "lang": "en",
+      "question": "How do I bake sourdough bread at home?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 878,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r03",
+      "lang": "en",
+      "question": "Who won the football World Cup in 2018?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 33201,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r04",
+      "lang": "en",
+      "question": "What is the best programming language to learn first?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1306,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r05",
+      "lang": "en",
+      "question": "How much tax do I pay on rental income in Spain?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 2193,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r06",
+      "lang": "en",
+      "question": "What are the common symptoms of the flu?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 12852,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r07",
+      "lang": "en",
+      "question": "What does the US Executive Order on AI require from companies?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1133,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r08",
+      "lang": "en",
+      "question": "How do I train a neural network on my own dataset?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 813,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r09",
+      "lang": "en",
+      "question": "Which cloud provider is cheapest for hosting a language model?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 885,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r10",
+      "lang": "en",
+      "question": "What are the copyright rules for AI-generated images in the UK?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1890,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r11",
+      "lang": "en",
+      "question": "How does the California Consumer Privacy Act define a business?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 606,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "r12",
+      "lang": "en",
+      "question": "What is the penalty for breaking the Digital Services Act?",
+      "route": "out_of_scope",
+      "ambiguous": false,
+      "source": "refusal_v0",
+      "predicted": "out_of_scope",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 3424,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "l01",
+      "lang": "en",
+      "question": "What does Article 5 of the AI Act say?",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 1,
+      "models": []
+    },
+    {
+      "id": "l02",
+      "lang": "en",
+      "question": "Show me Article 22 GDPR.",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "l03",
+      "lang": "en",
+      "question": "What is in Annex III of the AI Act?",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "l04",
+      "lang": "en",
+      "question": "Explain Article 6(3) of the AI Act.",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "l05",
+      "lang": "fr",
+      "question": "Que dit l'article 6 du RGPD ?",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "l06",
+      "lang": "fr",
+      "question": "Montre-moi l'article 50 du règlement sur l'IA.",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "l07",
+      "lang": "de",
+      "question": "Was steht in Artikel 17 DSGVO?",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "l08",
+      "lang": "de",
+      "question": "Zeige mir Anhang IV der KI-Verordnung.",
+      "route": "lookup",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "lookup",
+      "confidence": 1.0,
+      "method": "rules",
+      "clarify": false,
+      "ms": 0,
+      "models": []
+    },
+    {
+      "id": "c01",
+      "lang": "en",
+      "question": "We are building a CV-screening tool that ranks job applicants for our clients. What applies to us under the AI Act?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 892,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c02",
+      "lang": "en",
+      "question": "Our startup sells a customer-service chatbot to banks. Which AI Act rules apply to us?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 995,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c03",
+      "lang": "en",
+      "question": "We want to use emotion recognition on call-centre employees to measure their stress. Is that allowed and what do we need to do?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 721,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c04",
+      "lang": "en",
+      "question": "My company develops a credit scoring model that decides who gets a loan. What are our obligations?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 33644,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c05",
+      "lang": "fr",
+      "question": "Nous développons une application qui génère des images réalistes de personnes pour la publicité. Quelles règles s'appliquent à nous ?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 7700,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c06",
+      "lang": "fr",
+      "question": "Notre école veut utiliser une IA pour noter automatiquement les examens. Que devons-nous faire ?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 16887,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c07",
+      "lang": "de",
+      "question": "Wir entwickeln ein System, das in Krankenhäusern Röntgenbilder auswertet. Welche Pflichten haben wir nach der KI-Verordnung?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 927,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "c08",
+      "lang": "de",
+      "question": "Unsere Stadtverwaltung möchte KI einsetzen, um Anträge auf Sozialleistungen vorzusortieren. Was müssen wir beachten?",
+      "route": "compliance_check",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compliance_check",
+      "confidence": 0.95,
+      "method": "model",
+      "clarify": false,
+      "ms": 867,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "m01",
+      "lang": "en",
+      "question": "How does the AI Act's fundamental rights impact assessment relate to the GDPR's data protection impact assessment?",
+      "route": "compare",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compare",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1512,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "m02",
+      "lang": "en",
+      "question": "What is the difference between a provider under the AI Act and a controller under the GDPR?",
+      "route": "compare",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compare",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 543,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "m03",
+      "lang": "en",
+      "question": "Compare the fines under the AI Act and the GDPR.",
+      "route": "compare",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compare",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 786,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "m04",
+      "lang": "fr",
+      "question": "Quelle est la différence entre les obligations de transparence du règlement sur l'IA et le droit à l'information du RGPD ?",
+      "route": "compare",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compare",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 915,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "m05",
+      "lang": "de",
+      "question": "Wie unterscheiden sich die Regeln zu automatisierten Entscheidungen in der DSGVO und der KI-Verordnung?",
+      "route": "compare",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compare",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 745,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "m06",
+      "lang": "en",
+      "question": "Do the AI Act and the GDPR treat biometric data the same way?",
+      "route": "compare",
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "compare",
+      "confidence": 1.0,
+      "method": "model",
+      "clarify": false,
+      "ms": 1689,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "v01",
+      "lang": "en",
+      "question": "What do I need to do?",
+      "route": null,
+      "expect_clarify": true,
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "out_of_scope",
+      "confidence": 0.1,
+      "method": "model",
+      "clarify": true,
+      "ms": 3707,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "v02",
+      "lang": "fr",
+      "question": "Est-ce que c'est autorisé ?",
+      "route": null,
+      "expect_clarify": true,
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "out_of_scope",
+      "confidence": 0.1,
+      "method": "model",
+      "clarify": true,
+      "ms": 757,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    },
+    {
+      "id": "v03",
+      "lang": "de",
+      "question": "Was gilt für uns?",
+      "route": null,
+      "expect_clarify": true,
+      "ambiguous": false,
+      "source": "routes_v0",
+      "predicted": "out_of_scope",
+      "confidence": 0.1,
+      "method": "model",
+      "clarify": true,
+      "ms": 2327,
+      "models": [
+        "gemini:gemini-3.1-flash-lite"
+      ]
+    }
+  ]
+}

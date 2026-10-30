@@ -45,3 +45,7 @@ uv run --env-file .env python evals/run_retrieval.py --methods bm25 --tag bm25_a
 Result files are named after `--tag`. As of 2026-10-29 only `results/retrieval_bm25_all.*` exists: English chunks are embedded and cached, French and German are not, and the vector, hybrid and rerank numbers are still to be produced.
 
 **Daily rerun on the maintainer's machine (Windows):** a scheduled task `EuAiActCopilot-RetrievalEval` runs `scripts/daily_retrieval_eval.ps1` every day at 08:10 (Gemini's quota resets around 08:00 Tunisian time). Each run resumes from the disk cache, appends to `data/cache/daily_eval.log`, and when a run completes (exit code 0, `results/retrieval.json` written) the script removes the task. Check progress with `Get-Content data/cache/daily_eval.log -Tail 20`; stop it with `Unregister-ScheduledTask -TaskName EuAiActCopilot-RetrievalEval`.
+
+## routes_v0.jsonl
+
+77 questions for the agent's router: the 40 retrieval questions, the 12 extra out-of-scope ones (`refusal_v0.jsonl`), and 22 new ones (8 `lookup`, 8 `compliance_check`, 6 `compare`, in EN, FR and DE), plus 3 deliberately vague questions with `route: null` and `expect_clarify: true`. Labels were drafted by the assistant and are to be reviewed by the owner. Four questions that describe the asker's own situation and ask what applies (q12, q13, q26, q39) are marked `ambiguous`; `make eval-router` reports accuracy with and without them, and writes `results/router.json` and `results/router.md`.

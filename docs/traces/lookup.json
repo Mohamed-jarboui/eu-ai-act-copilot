@@ -1,0 +1,208 @@
+{
+  "question": "Que dit l'article 22 du RGPD ?",
+  "final": {
+    "run_id": "c5484a3c55444237b6c139bd56a208ca",
+    "thread_id": "618e46d22cc4443a8e1966f48e2a9ae2",
+    "answer": "La personne concernée a le droit de ne pas faire l'objet d'une décision fondée exclusivement sur un traitement automatisé, y compris le profilage, lorsqu'elle produit des effets juridiques la concernant ou l'affectant de manière significative [GDPR Art. 22]. Cette règle ne s'applique pas si la décision est nécessaire à la conclusion ou à l'exécution d'un contrat, si elle est autorisée par le droit de l'Union ou d'un État membre prévoyant des mesures de sauvegarde, ou si elle repose sur le consentement explicite de la personne [GDPR Art. 22]. Dans les cas où la décision est nécessaire à un contrat ou fondée sur le consentement, le responsable du traitement doit mettre en œuvre des mesures appropriées, incluant au minimum le droit d'obtenir une intervention humaine, d'exprimer son point de vue et de contester la décision [GDPR Art. 22]. Enfin, ces décisions ne peuvent pas être fondées sur des catégories particulières de données, sauf si des exceptions spécifiques s'appliquent et que des mesures de sauvegarde appropriées sont en place [GDPR Art. 22].",
+    "language": "fr",
+    "route": "lookup",
+    "route_confidence": 1.0,
+    "status": "done",
+    "limit_hit": null,
+    "refusal_reason": null,
+    "grounded": true,
+    "grounding_check": "passed",
+    "removed_sentences": [],
+    "citations": [
+      {
+        "id": "gdpr:art:22",
+        "label": "GDPR Art. 22",
+        "regulation": "gdpr",
+        "snippet": "1. La personne concernée a le droit de ne pas faire l'objet d'une décision fondée exclusivement sur un traitement automatisé, y compris le profilage, produisant des effets juridiques la concernant ou l'affectant de manière significative de façon similaire. 2. Le paragraphe 1 ne s'applique pas lorsqu"
+      }
+    ],
+    "plan": [],
+    "steps": [],
+    "missing_facts": [],
+    "retrieval_mode": null,
+    "retrieval_notes": [],
+    "notes": [],
+    "usage": {
+      "steps": 6,
+      "model_calls": 2,
+      "tool_calls": 1,
+      "input_tokens": 1522,
+      "output_tokens": 321,
+      "unreported_token_calls": 0,
+      "elapsed_s": 29.956,
+      "cost_usd": null,
+      "models": [
+        "gemini:gemini-3.1-flash-lite",
+        "groq:openai/gpt-oss-20b"
+      ]
+    }
+  },
+  "events": [
+    {
+      "type": "node",
+      "node": "input_guard",
+      "at_ms": 4.5,
+      "data": {
+        "name": "input_guard"
+      }
+    },
+    {
+      "type": "input_guard",
+      "node": "input_guard",
+      "at_ms": 4.5,
+      "data": {
+        "blocked": false,
+        "reason": null,
+        "flagged": false,
+        "question": "Que dit l'article 22 du RGPD ?"
+      }
+    },
+    {
+      "type": "node",
+      "node": "router",
+      "at_ms": 5.6,
+      "data": {
+        "name": "router"
+      }
+    },
+    {
+      "type": "route",
+      "node": "router",
+      "at_ms": 6.6,
+      "data": {
+        "route": "lookup",
+        "confidence": 1.0,
+        "method": "rules",
+        "regulation": "gdpr",
+        "reference": "GDPR Art. 22",
+        "clarify": false
+      }
+    },
+    {
+      "type": "node",
+      "node": "lookup",
+      "at_ms": 7.6,
+      "data": {
+        "name": "lookup"
+      }
+    },
+    {
+      "type": "tool_call",
+      "node": "lookup",
+      "at_ms": 7.6,
+      "data": {
+        "tool": "get_article",
+        "args": {
+          "regulation": "gdpr",
+          "reference": "22",
+          "language": "fr"
+        }
+      }
+    },
+    {
+      "type": "tool_result",
+      "node": "lookup",
+      "at_ms": 7.6,
+      "data": {
+        "tool": "get_article",
+        "ms": 0,
+        "ok": true,
+        "summary": "GDPR Art. 22",
+        "repeated": false
+      }
+    },
+    {
+      "type": "node",
+      "node": "answer",
+      "at_ms": 8.6,
+      "data": {
+        "name": "answer"
+      }
+    },
+    {
+      "type": "model_call",
+      "node": "answer",
+      "at_ms": 17692.3,
+      "data": {
+        "purpose": "answer",
+        "models": [
+          "gemini:gemini-3.1-flash-lite"
+        ],
+        "failed": [],
+        "ms": 17683
+      }
+    },
+    {
+      "type": "draft",
+      "node": "answer",
+      "at_ms": 17692.3,
+      "data": {
+        "words": 170,
+        "sources": [
+          "GDPR Art. 22"
+        ]
+      }
+    },
+    {
+      "type": "node",
+      "node": "ground",
+      "at_ms": 17693.3,
+      "data": {
+        "name": "ground"
+      }
+    },
+    {
+      "type": "model_call",
+      "node": "ground",
+      "at_ms": 29955.2,
+      "data": {
+        "purpose": "ground",
+        "models": [
+          "groq:openai/gpt-oss-20b"
+        ],
+        "failed": [],
+        "ms": 12261
+      }
+    },
+    {
+      "type": "ground",
+      "node": "ground",
+      "at_ms": 29955.2,
+      "data": {
+        "status": "passed",
+        "kept": 4,
+        "removed": 0,
+        "invalid_citation": false,
+        "round": 0
+      }
+    },
+    {
+      "type": "node",
+      "node": "output",
+      "at_ms": 29956.2,
+      "data": {
+        "name": "output"
+      }
+    },
+    {
+      "type": "output",
+      "node": "output",
+      "at_ms": 29956.2,
+      "data": {
+        "status": "done",
+        "route": "lookup",
+        "grounded": true,
+        "citations": [
+          "GDPR Art. 22"
+        ],
+        "limit": null,
+        "problems": []
+      }
+    }
+  ]
+}

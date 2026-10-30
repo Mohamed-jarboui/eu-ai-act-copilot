@@ -18,6 +18,8 @@ make eval-retrieval     # recall@k / MRR for BM25, vector, hybrid, hybrid+rerank
 make serve              # API and chat page on http://127.0.0.1:8000 (needs both API keys)
 make examples           # rerun the example questions below and rewrite that section
 make calibrate          # retrieval scores behind the refusal decision (no API calls)
+make eval-router        # router accuracy on the route-labelled questions (needs the API keys)
+make traces             # capture one real agent run per graph path into docs/traces/
 ```
 
 Corpus format, sources, licence and limitations: [docs/data-card.md](docs/data-card.md).
@@ -35,6 +37,20 @@ To run a script with your keys loaded: `uv run --env-file .env python your_scrip
 How an answer is made: retrieve the best chunks in the question's language, refuse if retrieval is empty or weak, let a model answer using only those numbered sources with `[AI Act Art. 6(2)]`-style citations (or `NOT_COVERED`), then a second cheap model call checks every sentence against the sources it cites. Unsupported sentences are removed and listed; if nothing is left the system says the texts do not cover the question. Citations that point outside the supplied sources are removed without asking the checker.
 
 Known limits: the daily Gemini free-tier embedding quota means vectors exist for English only for now (other languages answer with BM25, which the evaluation shows misses paraphrases); the cosine refusal threshold exists for English only and is provisional (9 in-scope and 1 out-of-scope question, see `docs/learning-log.md`); "grounded" means the sentences are supported by the sources that were retrieved, not that the right sources were found (see example 7); response times depend heavily on provider load (the examples below took 1.7 to 70 s, and three of the slow ones took about 4 s when asked again); this gives information about the texts, not legal advice.
+
+## The agent
+
+`POST /agent` (and the **Agent** mode of the chat page, with a **Show reasoning steps** panel) runs a LangGraph agent (`src/copilot/agent/`, design in [docs/agent-design.md](docs/agent-design.md)):
+
+- an input guard, then a **router**: explicit references ("Article 22 GDPR") are routed by rules without a model call; otherwise a small model chooses `lookup`, `legal_question`, `compare`, `compliance_check` or `out_of_scope`, and low confidence asks one clarifying question;
+- questions go through an **agentic RAG loop** (rewrite, hybrid search, grade, at most 2 re-searches, answer); a described AI system goes through a **plan-and-execute compliance check** (classify the risk level with deterministic rules over extracted facts, list obligations per role, check the GDPR overlap, report with assumptions and missing facts);
+- six **read-only tools** with typed arguments and recovery-oriented errors, per-step allow-lists, and guards that the category comes from the classifier and that the classifier sees the user's own words;
+- per-route **limits** (steps, model calls, tool calls, tokens, time), repeated-call detection, and a partial, flagged result instead of a crash; the Stage 3 **grounding check** runs last, with a reserve kept for it;
+- conversations persist per `thread_id` in SQLite, so the answer to a clarifying question continues the same thread.
+
+The stream sends one `trace` event per step (routing decision, plan, tool calls and results, grading, critic, limits), then one `final` event. Three real runs, one per graph path, are in [docs/traces/](docs/traces/).
+
+Router accuracy (`evals/run_router.py`, 74 route-labelled questions drafted by me and still to be reviewed): 0.905, or 0.943 on the 70 not marked ambiguous; all 7 errors sent a legal question to the compliance check, and an earlier identical run scored 70 of 74, so routing varies between runs.
 
 ## Example questions
 

@@ -420,3 +420,39 @@ Route labels are needed to evaluate the router: the 52 questions we have (40 gol
 | Answer and report tier | the current generation chain | As in Stage 3 |
 | Plan display | The plan is streamed before execution, in the user's language | `design.md`: the plan is shown to the user |
 | Obligations table and AI Act ↔ GDPR pairs | Drafted by me, reviewed by the owner | They are legal content |
+
+## 10. Stage 4B: implementation notes
+
+Implemented in `src/copilot/agent/` (LangGraph 1.2.18 with `langgraph-checkpoint-sqlite` 3.1.2). The graph, the six tools, the limits and the guardrails follow the sections above; this section records where the implementation differs from the design and what the real runs changed.
+
+### Decisions changed since Stage 4A
+
+| Topic | Design (4A) | Implemented | Why |
+|---|---|---|---|
+| State store | Stateless API | **SQLite checkpointer** (`data/cache/agent.sqlite`), threads keyed by `thread_id`; `/agent` still works without one | The Stage 4B brief asked for it. The conversation (last 6 turns) persists per thread; task and budget are replaced at each run. |
+| AI Act ↔ GDPR pairs | A curated table | **Explicit references extracted from the text at runtime** (the AI Act cites a GDPR article 6 times: Art. 3, 5 and 26 cite Art. 9; Art. 26(9), 27(4) and 59 cite Art. 35), **plus** a small curated table, each pair marked `curated` and to be reviewed | An extracted link is verifiable; only the pairs the text does not state are drafted. |
+| Clarification | Low confidence asks one question | Same, now **for every route**: an extra rule of mine that never clarified `out_of_scope` was removed | Measured: the model labels vague questions ("What do I need to do?") `out_of_scope` with confidence 0.1 to 0.2, so the extra rule turned all 3 vague test questions into refusals. |
+
+### Found by tests and real runs, and fixed
+
+- **The model chose the category itself.** In a captured compliance run, `classify_ai_risk` failed (unreadable extraction), and the obligations step then called `list_obligations(category="high_risk")` on its own, so the report presented an unclassified system as high-risk. An instruction was not enough: `list_obligations` is now refused unless a classification exists, and its `category` must match it (an argument-validation guard in `context.py`). When classification fails, the report prompt says so explicitly.
+- **The model paraphrased the user's system before classifying it.** Two captured runs show the model adding its own wording to `system_description`. `classify_ai_risk` now always receives the user's own words (the question and earlier user turns of the thread); the substitution is traced as a `guard` event.
+- **Unreadable fact extraction** is retried once inside the tool, with a larger output budget (reasoning models spend output tokens thinking).
+- **`lookup` without a named provision** (the model sent "Can I get a copy of my data?" to `lookup`) would have crashed the lookup node; such decisions become `legal_question` (`router.settle`).
+- **A repeated identical search** returned the earlier result flagged `repeated_call`, which the search node discarded, so the grader saw nothing. The earlier result is now reused, and the no-progress rule ends the loop.
+- **Step counting** was off by one (a node's own model call saw its step as already spent); a step now counts when the node finishes, and the final check of a partial draft is not blocked by the step limit (it is still bound by the reserve and the clock).
+- **A partial run whose critic cannot run** withholds the draft (design section 4), rather than Stage 3's "keep the cited sentences unverified".
+- **Traces** now include the model calls made inside tools and the failed attempts before a successful call, and the response includes `retrieval_notes` (why a run used BM25 only).
+
+### Other details
+
+- Unknown prohibited-practice facts do not make the whole classification undetermined; each becomes a question for the user. Only an unknown Annex III area (or an unknown decisive fact on the high-risk branch) gives "undetermined".
+- An unknown Art. 6(3) derogation is treated as not met (high-risk) and recorded as an assumption plus a question, because the derogation is an exception the provider must document (Art. 6(4)).
+- Each compliance step runs a short ReAct loop over the step's allowed tools, with JSON actions (`{"tool": ..., "args": ...}` or `{"done": ...}`) and at most 3 tool calls.
+- Answers and reports reuse the Stage 3 prompt, citation validation and grounding check (`copilot.answer`); retrieval reuses the Stage 2 index through the Stage 3 `AppRetriever`.
+- One run at a time per server process: the checkpointer shares one SQLite connection, so runs are serialized with a lock.
+
+### Measured (2026-10-30)
+
+- Router, `evals/run_router.py` on 74 route-labelled questions (labels drafted by the assistant, to be reviewed): accuracy 0.905 (67 of 74); 0.943 (66 of 70) without the 4 marked ambiguous. All 7 errors send a legal question to `compliance_check`. All 8 lookups are routed by the rules without a model call. 3 of 3 vague questions get a clarifying question; 0 of 74 labelled questions are wrongly clarified. An earlier run with the same prompt (before the lookup fix) scored 70 of 74, with 3 questions sent to `compliance_check` instead of 7: the model's routing varies between identical runs.
+- Three captured runs in `docs/traces/` (one per graph path): all three grounded. Wall times of 30 to 104 s were dominated by provider latency and failed attempts (visible in the traces), not by the graph. The legal question used BM25 only, because the day's embedding quota was spent.

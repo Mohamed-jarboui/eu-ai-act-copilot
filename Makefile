@@ -1,4 +1,4 @@
-.PHONY: install lint test ingest eval-retrieval serve examples calibrate
+.PHONY: install lint test ingest eval-retrieval serve examples calibrate eval-router traces
 
 install:
 	uv sync
@@ -24,3 +24,9 @@ examples:
 
 calibrate:
 	uv run python -m copilot.answer.calibrate
+
+eval-router:
+	uv run --env-file .env python evals/run_router.py
+
+traces:
+	uv run --env-file .env python -m copilot.agent.traces

@@ -1,0 +1,11 @@
+{
+  "_note": "CURATED AI Act <-> GDPR pairs that the AI Act text does not state as an article reference. Drafted by the assistant, to be reviewed by the owner. Explicit references (e.g. 'Article 35 of Regulation (EU) 2016/679') are extracted from the text at runtime and are not listed here.",
+  "pairs": [
+    {"aiact": "aiact:art:86", "gdpr": "gdpr:art:22", "reason": "explanation of decisions taken with high-risk AI vs. automated individual decision-making"},
+    {"aiact": "aiact:art:14", "gdpr": "gdpr:art:22", "reason": "human oversight of high-risk AI vs. the right to human intervention"},
+    {"aiact": "aiact:art:10", "gdpr": "gdpr:art:6", "reason": "training and testing data vs. lawfulness of processing personal data"},
+    {"aiact": "aiact:art:10", "gdpr": "gdpr:art:9", "reason": "special categories processed to detect and correct bias (Art. 10(5))"},
+    {"aiact": "aiact:art:50", "gdpr": "gdpr:art:13", "reason": "transparency towards people vs. information to be provided to the data subject"},
+    {"aiact": "aiact:art:99", "gdpr": "gdpr:art:83", "reason": "penalties vs. administrative fines"}
+  ]
+}
