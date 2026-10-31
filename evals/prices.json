@@ -1,0 +1,12 @@
+{
+  "gemini-3.1-flash-lite": {"input_per_1m_tokens_usd": 0.25, "output_per_1m_tokens_usd": 1.50,
+                            "note": "paid tier, standard, text input; output includes thinking tokens",
+                            "source": "https://ai.google.dev/gemini-api/docs/pricing", "date": "2026-10-31"},
+  "gemini-3.6-flash": {"input_per_1m_tokens_usd": 0.75, "output_per_1m_tokens_usd": 3.75,
+                       "note": "paid tier, standard, text input; price through 2026-12-31 (1.50 / 7.50 from 2027-01-01)",
+                       "source": "https://ai.google.dev/gemini-api/docs/pricing", "date": "2026-10-31"},
+  "openai/gpt-oss-20b": {"input_per_1m_tokens_usd": 0.075, "output_per_1m_tokens_usd": 0.30,
+                         "source": "https://console.groq.com/docs/models", "date": "2026-10-31"},
+  "openai/gpt-oss-120b": {"input_per_1m_tokens_usd": 0.15, "output_per_1m_tokens_usd": 0.60,
+                          "source": "https://console.groq.com/docs/models", "date": "2026-10-31"}
+}

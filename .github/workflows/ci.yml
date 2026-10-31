@@ -16,3 +16,48 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest
+
+  # The fast evaluation subset (15 cases, 1 run) with the real models, on every pull request.
+  # Fails when task success or safety drops below results/eval_ci_baseline.json (evals/gate.py).
+  eval-subset:
+    if: github.event_name == 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Skip without secrets (pull requests from forks get none)
+        id: keys
+        run: |
+          if [ -z "$GEMINI_API_KEY" ] || [ -z "$GROQ_API_KEY" ]; then
+            echo "API keys not available; skipping the evaluation." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.keys.outputs.ok == 'true'
+      - uses: astral-sh/setup-uv@v5
+        if: steps.keys.outputs.ok == 'true'
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+        if: steps.keys.outputs.ok == 'true'
+      - name: Run the subset
+        if: steps.keys.outputs.ok == 'true'
+        run: uv run python evals/run_agent.py --subset ci --runs 1 --tag eval_ci_pr
+      - name: Compare with the baseline
+        if: steps.keys.outputs.ok == 'true'
+        run: |
+          cat results/eval_ci_pr.md >> "$GITHUB_STEP_SUMMARY"
+          uv run python evals/gate.py results/eval_ci_pr.json
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.keys.outputs.ok == 'true'
+        with:
+          name: eval-subset
+          path: |
+            results/eval_ci_pr.*
+            results/runs/eval_ci_pr*
