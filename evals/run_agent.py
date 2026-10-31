@@ -135,6 +135,11 @@ def judge_runs(cases: dict[str, Case], runs: list[dict], path: Path, units) -> N
         needs_safety = bool(case.safety_rule) and finished
         if needs_judge or needs_safety:
             todo.append((case, r, needs_judge, needs_safety))
+    # The hand-labelled answers first: the judge's agreement with them decides whether the other
+    # verdicts can be trusted, so they are worth the scarce free-tier judge calls the most.
+    labelled = Path("evals/judge_calibration.jsonl")
+    first = {(x["case_id"], x["run"]) for x in read_jsonl(labelled)} if labelled.exists() else set()
+    todo.sort(key=lambda item: (item[1]["case_id"], item[1]["run"]) not in first)
     for n, (case, r, needs_judge, needs_safety) in enumerate(todo, start=1):
         row = {"case_id": case.id, "run": r["run"], "at": r["at"], "judge": None, "safety": None}
         if needs_judge:
@@ -353,10 +358,10 @@ def main() -> None:
     summary = summarize(rows, args.runs)
     agreement = RESULTS / "judge_agreement.json"
     judge_status = (
-        "agreement with the owner's labels: see `results/judge_agreement.md`"
+        "agreement with hand labels: see `results/judge_agreement.md` (and who labelled them)"
         if agreement.exists()
-        else "NOT YET CALIBRATED against the owner's labels (evals/judge_calibration.jsonl "
-        "missing), so judge-based numbers are provisional"
+        else "NOT YET CALIBRATED against hand labels (run evals/judge_calibration.py), so "
+        "judge-based numbers are provisional"
     )
     judge_costs = [r["judge_cost_usd"] for r in rows if r["judge_cost_usd"] is not None]
     report = {

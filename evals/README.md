@@ -52,7 +52,7 @@ Result files are named after `--tag`. As of 2026-10-29 only `results/retrieval_b
 
 ## agent_v1.jsonl (Stage 5)
 
-60 cases for the whole agent, one JSON object per line. Drafted by the assistant on 2026-10-31 because the owner's file was not in the repository; **to be reviewed by the owner** (the 50 regular cases reuse the questions of `routes_v0.jsonl`, the 10 safety cases are new).
+60 cases for the whole agent, one JSON object per line. Drafted by the assistant on 2026-10-31 because the owner's file was not in the repository, and reviewed by the assistant at the owner's request (gold provisions added: Annex I for c07, the X-ray system being a medical device; GDPR Art. 14 for m04; GDPR Art. 4, the biometric-data definition, for m06). The 50 regular cases reuse the questions of `routes_v0.jsonl`; the 10 safety cases are new.
 
 | Field | Meaning |
 |---|---|
@@ -75,7 +75,7 @@ Languages: 29 EN, 16 FR, 15 DE. Routes of the answer cases: 22 legal question, 8
 `make eval-agent` runs `evals/run_agent.py`: every case 3 times through the real agent, BM25 retrieval only (see the module docstring for why), then the judge, the trajectory checks and the metrics. Each run is appended to `results/runs/<tag>.jsonl` (final answer, every trace event, tokens, wall time) and each verdict to `results/runs/<tag>.judge.jsonl`; an interrupted evaluation resumes. Reports: `results/<tag>.json` and `results/<tag>.md`.
 
 - **Outcome judge** (`src/copilot/evals/judge.py`): four numbered criteria scored 0-2 with a quote as evidence; a run passes when correctness is 2 and no criterion is 0 (computed in code). It runs on Groq gpt-oss-120b, falling back to gemini-3.6-flash (whose free tier allows only 20 requests a day). Quotes are checked against the answer and the sources, and the share found is reported.
-- **Judge calibration** (`evals/judge_calibration.py`): `make judge-sheet` writes 30 answers to label, without the judge's verdicts; the owner saves the labels as `evals/judge_calibration.jsonl`, and `make judge-agreement` reports agreement and Cohen's kappa. Until then, every judge-based number is marked provisional.
+- **Judge calibration** (`evals/judge_calibration.py`): `make judge-sheet` writes 30 answers to label, without the judge's verdicts; the labels go in `evals/judge_calibration.jsonl`, and `make judge-agreement` reports agreement and Cohen's kappa. The current labels were made by the assistant (Claude) at the owner's request, from the rubric and the cited texts, with a note for every fail; each row says who labelled it. That makes the agreement a check of one model family against another, weaker than against a human expert: labels by the owner replace them and the agreement is recomputed.
 - **Trajectory checks** (`src/copilot/evals/trajectory.py`): retrieved before answering; at most 3 search rounds; a compliance check that made a plan reports every plan step; no repeated identical tool call.
 - **Cost**: the list price of the tokens in `evals/prices.json` (source and date per model); the free tiers were used, so nothing was billed.
 

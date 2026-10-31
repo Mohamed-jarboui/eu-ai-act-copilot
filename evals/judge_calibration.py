@@ -107,12 +107,15 @@ def agreement(tag: str) -> None:
                 "within_1": round(sum(abs(a - b) <= 1 for a, b in scored) / len(scored), 3),
             }
     trusted = n > 0 and agree >= MIN_AGREEMENT and (kappa or 0) >= MIN_KAPPA
-    report = {"tag": tag, "n": n, "agreement": agree, "kappa": kappa, "trusted": trusted,
+    labelled_by = sorted({r.get("labelled_by") or "the owner" for r, _ in pairs})
+    report = {"tag": tag, "labelled_by": labelled_by, "n": n, "agreement": agree, "kappa": kappa,
+              "trusted": trusted,
               "rule": f"agreement >= {MIN_AGREEMENT} and kappa >= {MIN_KAPPA}",
               "confusion": dict(confusion), "per_criterion": per_criterion}  # fmt: skip
     OUT_JSON.write_text(json.dumps(report, indent=2) + "\n", "utf-8")
     lines = ["# Judge vs owner labels", "",
-             f"{n} labelled answers from `{tag}`. Agreement {agree}, Cohen's kappa {kappa}. "
+             f"{n} labelled answers from `{tag}`, labelled by: {'; '.join(labelled_by)}. "
+             f"Agreement {agree}, Cohen's kappa {kappa}. "
              f"Trusted: **{trusted}** (rule: {report['rule']}).", "",
              "Confusion: " + ", ".join(f"{k}: {v}" for k, v in sorted(confusion.items())), "",
              *[f"- {k}: exact {v['exact']}, within 1 point {v['within_1']} (n={v['n']})"
