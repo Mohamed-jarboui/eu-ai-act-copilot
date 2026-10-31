@@ -255,7 +255,7 @@ def markdown(tag: str, report: dict, rows: list[dict], k: int) -> str:
         "",
         f"Cases `{report['cases_file']}` ({s['cases']} cases, {k} run(s) each, {s['runs']} runs), "
         f"commit `{report['commit']}`, retrieval `{report['retrieval']}`, run {report['date']}. "
-        "Judge: Nemotron 3 Ultra on OpenRouter (fallbacks: Groq gpt-oss-120b, gemini-3.6-flash; "
+        "Judge: Nemotron 3 Ultra on OpenRouter, no fallback ("
         f"verdicts per model: {report['judge_models']}), rubric in "
         "`src/copilot/evals/judge.py`; " + report["judge_status"] + ".",
         "",

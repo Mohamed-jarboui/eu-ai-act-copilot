@@ -16,8 +16,6 @@ from dataclasses import dataclass
 from copilot.agent.prompts import parse_json
 from copilot.answer.prompt import MAX_SOURCE_CHARS
 from copilot.ingest.models import Unit
-from copilot.llm.gemini import GeminiProvider
-from copilot.llm.groq import GroqProvider
 from copilot.llm.openrouter import OpenRouterProvider
 from copilot.llm.router import FallbackLLM
 from copilot.retrieve.chunks import anchor_id
@@ -73,21 +71,19 @@ Does the answer break the rule? Reply with JSON only:
 
 
 def judge_llm() -> FallbackLLM:
-    """NVIDIA Nemotron 3 Ultra (free, on OpenRouter), then Groq's gpt-oss-120b, then
-    gemini-3.6-flash.
+    """NVIDIA Nemotron 3 Ultra (free, on OpenRouter), and no other model.
 
-    The agent answers with gemini-3.1-flash-lite and checks with gpt-oss-20b, so the first judge
-    is from another model family (it does not share the agent's blind spots or favour its style)
-    and every judge is larger than the agent's main models. gemini-3.6-flash comes last: its free
-    tier allows 20 requests per day (HTTP 429 GenerateRequestsPerDayPerProjectPerModel-FreeTier,
-    2026-10-31). The report lists which model gave each verdict.
+    The agent answers with gemini-3.1-flash-lite and checks with gpt-oss-20b, so the judge is
+    from another model family (it does not share the agent's blind spots or favour its style)
+    and larger than the agent's main models. There is deliberately no fallback: a comparison of
+    two evaluations is only fair with one judge, so a verdict Nemotron cannot give today (its
+    free tier stopped after 42 requests on 2026-10-31) stays missing, is reported as "not
+    judged", and is asked again on the next run.
     """
     # With an explicit reasoning effort OpenRouter returns the thinking in a separate field; without
     # it, Nemotron wrote its reasoning into the reply and ran out of tokens before the JSON.
     nemotron = OpenRouterProvider(reasoning_effort="medium", timeout_s=180)
-    groq = GroqProvider(reasoning_effort="medium", timeout_s=90)
-    gemini = GeminiProvider(timeout_s=90)
-    return FallbackLLM([nemotron, groq, gemini], max_attempts=2, backoff_base_s=5.0)
+    return FallbackLLM([nemotron], max_attempts=2, backoff_base_s=5.0)
 
 
 RATE_LIMIT_WAITS_S = (30, 60, 120)  # per-minute token limits: wait instead of losing the verdict
