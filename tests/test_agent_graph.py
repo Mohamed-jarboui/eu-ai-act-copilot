@@ -148,39 +148,40 @@ def test_out_of_scope_is_refused_without_tools():
 CV = "We are building a CV-screening tool that ranks job applicants. What applies to us?"
 
 
-def compliance_script(**overrides):
-    def react(p):
-        observed = "Observation" in p
-        if "Classify the user's AI system" in p:
-            return (
-                '{"done": "High-risk under Annex III point 4."}'
-                if observed
-                else json.dumps(
-                    {
-                        "tool": "classify_ai_risk",
-                        "args": {"system_description": CV, "language": "en"},
-                    }
-                )
+def default_react(p):
+    observed = "Observation" in p
+    if "Classify the user's AI system" in p:
+        return (
+            '{"done": "High-risk under Annex III point 4."}'
+            if observed
+            else json.dumps(
+                {
+                    "tool": "classify_ai_risk",
+                    "args": {"system_description": CV, "language": "en"},
+                }
             )
-        if "List the obligations" in p:
-            return (
-                '{"done": "Art. 16 obligations listed."}'
-                if observed
-                else json.dumps(
-                    {
-                        "tool": "list_obligations",
-                        "args": {"role": "provider", "category": "high_risk", "language": "en"},
-                    }
-                )
+        )
+    if "List the obligations" in p:
+        return (
+            '{"done": "Art. 16 obligations listed."}'
+            if observed
+            else json.dumps(
+                {
+                    "tool": "list_obligations",
+                    "args": {"role": "provider", "category": "high_risk", "language": "en"},
+                }
             )
-        return '{"done": "GDPR Art. 35 may apply."}' if observed else json.dumps(
-            {"tool": "cross_reference", "args": {"regulation": "aiact", "reference": "26",
-                                                 "language": "en"}})  # fmt: skip
+        )
+    return '{"done": "GDPR Art. 35 may apply."}' if observed else json.dumps(
+        {"tool": "cross_reference", "args": {"regulation": "aiact", "reference": "26",
+                                             "language": "en"}})  # fmt: skip
 
+
+def compliance_script(**overrides):
     extraction = {"facts": {"profiling": {"value": "yes", "evidence": "ranks"},
                             "art6_3_derogation": {"value": "unknown"}},
                   "annex_iii_area": "4", "roles": ["provider"]}  # fmt: skip
-    defaults = dict(router=lambda p: router_says("compliance_check"), react=react,
+    defaults = dict(router=lambda p: router_says("compliance_check"), react=default_react,
                     risk=lambda p: json.dumps(extraction))  # fmt: skip
     return Script(**{**defaults, **overrides})
 
@@ -201,6 +202,20 @@ def test_compliance_check_executes_the_plan_and_reports_with_gaps():
     assert answer.missing_facts and answer.grounded is True
     report_prompt = script.logs["report"][0]
     assert "category=high_risk" in report_prompt and "AI Act Art. 16(a)" in report_prompt
+
+
+def test_a_native_tool_call_shape_is_accepted_in_a_step():
+    # Stage 5 failure: gpt-oss on Groq replied with {"name", "arguments"} (a native tool call)
+    # instead of {"tool", "args"}; the provider now returns it as text and the step runs it.
+    def react(p):
+        if "Classify the user's AI system" in p and "Observation" not in p:
+            args = {"system_description": CV, "language": "en"}
+            return json.dumps({"name": "classify_ai_risk", "arguments": args})
+        return default_react(p)
+
+    answer, events = build_runner(compliance_script(react=react)).run(CV, "en")
+    assert answer.status == "done"
+    assert tool_calls(events)[0]["data"]["tool"] == "classify_ai_risk"
 
 
 def test_a_step_that_repeats_a_call_is_stopped_and_the_run_continues():

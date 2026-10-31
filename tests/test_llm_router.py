@@ -179,3 +179,30 @@ def test_error_from_status(status, error_type):
     from copilot.llm.base import error_from_status
 
     assert type(error_from_status(status, "x", provider="p")) is error_type
+
+
+def test_groq_native_tool_call_is_returned_as_text_not_an_error():
+    import groq as groq_sdk
+    import httpx
+
+    from copilot.llm.groq import GroqProvider
+
+    request = httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions")
+    body = {"error": {"message": "Tool choice is none, but model called a tool",
+                      "code": "tool_use_failed",
+                      "failed_generation": '{"name": "get_article", "arguments": {}}'}}  # fmt: skip
+    rejected = groq_sdk.BadRequestError("400", response=httpx.Response(400, request=request),
+                                        body=body)  # fmt: skip
+
+    class Completions:
+        def create(self, **kwargs):
+            raise rejected
+
+    provider = GroqProvider(api_key="test")
+    provider._client = type("C", (), {"chat": type("Chat", (), {"completions": Completions()})})
+    out = provider.generate("prompt", tier="small")
+    assert out.text == '{"name": "get_article", "arguments": {}}' and out.input_tokens is None
+
+    body["error"]["code"] = "json_validate_failed"  # any other 400 stays an error
+    with pytest.raises(BadRequestError):
+        provider.generate("prompt", tier="small")

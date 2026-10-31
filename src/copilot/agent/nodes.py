@@ -326,6 +326,8 @@ def _react(state: AgentState, scope: Scope, step: str) -> StepResult:
                 summary = str(action.get("done") or summary or "")
                 break
             name, args = action.get("tool"), action.get("args")
+            if name is None and "name" in action:  # a native tool call recovered from Groq
+                name, args = action.get("name"), action.get("arguments")
             if not isinstance(name, str) or not isinstance(args, dict):
                 scratch.append('Reply with {"tool": "<name>", "args": {...}} or {"done": "..."}.')
                 continue

@@ -74,6 +74,11 @@ class GroqProvider:
                 **self._extra,
             )
         except Exception as exc:
+            recovered = _failed_tool_call(exc)
+            if recovered is not None:
+                return Generation(
+                    text=recovered, model=model, input_tokens=None, output_tokens=None
+                )
             raise _translate(exc) from exc
         usage = response.usage
         return Generation(
@@ -134,6 +139,20 @@ class GroqProvider:
         self, texts: list[str], *, task: EmbedTask = "document", dimensions: int | None = None
     ) -> Embedding:
         raise UnsupportedOperationError("Groq has no embeddings endpoint", provider=self.name)
+
+
+def _failed_tool_call(exc: Exception) -> str | None:
+    """gpt-oss sometimes answers a prompt that describes tools with a native tool call, which
+    Groq rejects (HTTP 400 "tool_use_failed": we send no tools). The intended reply is in the
+    error's `failed_generation`; return it as the text instead of failing the call."""
+    if not isinstance(exc, groq_sdk.APIStatusError) or exc.status_code != 400:
+        return None
+    body = exc.body if isinstance(exc.body, dict) else {}
+    error = body.get("error", body)
+    if not isinstance(error, dict) or error.get("code") != "tool_use_failed":
+        return None
+    generated = error.get("failed_generation")
+    return generated if isinstance(generated, str) and generated.strip() else None
 
 
 def _translate(exc: Exception) -> ProviderError:
