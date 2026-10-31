@@ -67,6 +67,25 @@ def test_re_search_stops_after_three_searches():
     assert answer.status == "done"  # the last grade is forced to answer with what it has
 
 
+def test_re_search_stays_within_the_tool_budget_and_still_answers():
+    # Stage 5 failure: 3 queries per round used the 6 tool calls in two rounds, and the third
+    # round stopped the run as partial with no answer.
+    rounds = iter(range(10))
+
+    def three_queries(prompt):
+        n = next(rounds)
+        return json.dumps({"queries": [{"regulation": "aiact", "query": f"topic {n} part {i}"}
+                                       for i in range(3)]})  # fmt: skip
+
+    script = Script(
+        grade=lambda p: '{"relevant": [1], "decision": "research", "reason": "more"}',
+        rewrite=three_queries,
+    )
+    answer, events = build_runner(script).run("Which AI practices are prohibited?", "en")
+    assert answer.status == "done" and answer.limit_hit is None
+    assert len(tool_calls(events, "search_regulation")) <= LIMITS["legal_question"].max_tool_calls
+
+
 def test_no_new_passages_ends_the_loop_early():
     script = Script(grade=lambda p: '{"relevant": [1], "decision": "research", "reason": "more"}')
     # the same query every time: the second search finds nothing new

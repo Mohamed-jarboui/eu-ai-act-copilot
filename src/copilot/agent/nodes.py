@@ -144,6 +144,9 @@ def rewrite(state: AgentState, scope: Scope) -> None:
             queries.append(f"{reg}|{item['query'].strip()}")
     if not queries:  # the model gave nothing usable: search with the question itself
         queries = [f"{state.task.regulation_hint or 'both'}|{scope.task.sanitized_question}"]
+    # Never plan more searches than the tool budget allows: running out mid-search ended the run
+    # as partial with nothing answered (Stage 5 evaluation, docs/failures.md).
+    queries = queries[: max(1, _tool_calls_left(state, scope))]
     scope.task.searches.append(SearchAttempt(queries=queries, chunk_ids=[]))
     scope.event("rewrite", queries=queries)
 
@@ -182,6 +185,10 @@ def search(state: AgentState, scope: Scope) -> None:
     if seen_before and set(attempt.chunk_ids) <= seen_before:
         attempt.reason = "no_progress"  # nothing new: the loop ends as if no searches were left
     scope.task.evidence = best
+
+
+def _tool_calls_left(state: AgentState, scope: Scope) -> int:
+    return state.limits.max_tool_calls - scope.used.tool_calls
 
 
 def _compare_links(state: AgentState, scope: Scope) -> None:
@@ -231,8 +238,8 @@ def grade(state: AgentState, scope: Scope) -> None:
         )
         return _not_covered(state, scope)
     searches_left = MAX_SEARCHES - len(scope.task.searches)
-    if attempt.reason == "no_progress":
-        searches_left = 0
+    if attempt.reason == "no_progress" or _tool_calls_left(state, scope) <= 0:
+        searches_left = 0  # answer from what was found rather than stop on the tool budget
     prompt = prompts.grade_prompt(scope.task.sanitized_question, candidates, searches_left)
     data = prompts.parse_json(scope.model("grade", prompt, max_output_tokens=400)) or {}
     relevant = [
