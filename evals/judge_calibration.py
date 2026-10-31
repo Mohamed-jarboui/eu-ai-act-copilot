@@ -37,7 +37,8 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def verdicts(tag: str) -> dict[tuple[str, int], dict]:
-    rows = read_jsonl(Path(f"results/runs/{tag}.judge.jsonl"))
+    path = Path(f"results/runs/{tag}.judge.jsonl")
+    rows = read_jsonl(path) if path.exists() else []
     return {(r["case_id"], r["run"]): r["judge"]["verdict"] for r in rows
             if r.get("judge") and r["judge"].get("verdict")}  # fmt: skip
 

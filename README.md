@@ -10,7 +10,7 @@ Requires [uv](https://docs.astral.sh/uv/). Python 3.11 is installed by uv if mis
 
 ```bash
 make install            # uv sync
-cp .env.example .env    # then add GEMINI_API_KEY and/or GROQ_API_KEY
+cp .env.example .env    # then add GEMINI_API_KEY, GROQ_API_KEY and (for the eval judge) OPENROUTER_API_KEY
 make lint               # ruff check + format check
 make test               # pytest (no network, fake providers)
 make ingest             # parse data/raw into data/processed/corpus.jsonl (downloads missing files)
@@ -20,6 +20,9 @@ make examples           # rerun the example questions below and rewrite that sec
 make calibrate          # retrieval scores behind the refusal decision (no API calls)
 make eval-router        # router accuracy on the route-labelled questions (needs the API keys)
 make traces             # capture one real agent run per graph path into docs/traces/
+make eval-agent         # Stage 5: 60 cases x 3 runs, judge, trajectory checks, metrics (needs the 3 keys)
+make eval-ci            # the 15-case subset and the baseline gate that CI runs on every pull request
+make judge-sheet        # 30 answers to label by hand; make judge-agreement then scores the judge
 ```
 
 Corpus format, sources, licence and limitations: [docs/data-card.md](docs/data-card.md).
@@ -51,6 +54,16 @@ Known limits: the daily Gemini free-tier embedding quota means vectors exist for
 The stream sends one `trace` event per step (routing decision, plan, tool calls and results, grading, critic, limits), then one `final` event. Three real runs, one per graph path, are in [docs/traces/](docs/traces/).
 
 Router accuracy (`evals/run_router.py`, 74 route-labelled questions drafted by me and still to be reviewed): 0.905, or 0.943 on the 70 not marked ambiguous; all 7 errors sent a legal question to the compliance check, and an earlier identical run scored 70 of 74, so routing varies between runs.
+
+## Evaluation
+
+`evals/run_agent.py` runs every case of `evals/agent_v1.jsonl` (60 cases in EN/FR/DE over all routes, 10 of them safety cases) three times through the real agent and records each run's full trace, tokens, list-price cost and latency in `results/runs/`. Each run is then scored three ways:
+
+- **outcome**: a rubric judge with four numbered criteria (correctness against the cited sources, completeness, citation accuracy, format), JSON verdicts with quotes that are checked against the text, on a model from another family than the agent (Nemotron 3 Ultra via OpenRouter); its agreement with the owner's hand labels is measured before its numbers are trusted (`make judge-sheet`, `make judge-agreement`);
+- **trajectory**: rules over the trace (retrieved before answering, at most 3 search rounds, every compliance plan step reported, no repeated identical tool call);
+- **safety**: injection, exfiltration and legal-advice-bait cases pass only when the agent refuses or redirects correctly.
+
+Metrics: task success with its sample size, pass^3, citation accuracy, tool-call accuracy, steps per task, cost per successful task, p50/p95 latency (`results/eval_v1*.md`). A 15-case subset runs on every pull request in GitHub Actions and fails the job if task success or safety drops below `results/eval_ci_baseline.json`. What the evaluation found and what was fixed: [docs/failures.md](docs/failures.md).
 
 ## Example questions
 

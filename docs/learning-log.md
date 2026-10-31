@@ -403,3 +403,20 @@ The router is a model call, so the same question can be routed differently from 
 
 **3. Why does a limit stop the run with a "partial" result instead of raising an error, and why can the last check still run after the step limit is hit?**
 A limit is an expected outcome of a bounded agent, not a bug: the user should get whatever is solid so far, clearly flagged, and the API should not fail. So every node runs inside a wrapper that turns a limit (or a provider failure) into `status = "partial"`, and every edge then leads to `finalize_partial` and `output`. The one thing that must never happen is showing an unchecked draft. That is why the budget keeps a reserve (one model call and 6,000 tokens) for the grounding check, and why the step limit does not block that final check: it is not new work, it is the verification of work already done. If even the reserve or the clock is spent, or the checker cannot run, the draft is withheld and a refusal is returned.
+
+---
+
+## Stage 5: evaluation and reliability (no TODO(me) by request)
+
+The harness is in `evals/run_agent.py` and `src/copilot/evals/`; what it found is in `docs/failures.md`.
+
+### Questions and answers
+
+**1. Why are runs where every model provider failed reported as "not measured" instead of counted as agent failures, and when would that be the wrong choice?**
+The evaluation asks how good the agent's answers and decisions are. A run where Gemini's free daily quota was gone and Groq was rate-limited never got to make a decision, so counting it would mostly measure the free tier, and the numbers would change with the time of day the evaluation started (the first one lost 34 of 180 runs after 01:57). So those runs are listed by id, re-run later, and kept out of the rates, which stay honest because every rate carries its sample size. It would be the wrong choice for a question about availability: "how often does a user get no answer?" must count them. That is why the report still lists them, and why the real lesson from them (all providers can fail together, so add a third) is written down as the next stage's work instead of hidden.
+
+**2. The first judge scored four correct article lookups as wrong. What was the cause, and what does it say about using an LLM as a judge?**
+The judge was shown only the first 1,500 characters of each cited article, while Art. 5 is 11,080 characters long; a correct statement from point (e) was "not in the source" as far as the judge could see. The model behaved sensibly; the harness gave it the wrong evidence. Two lessons: a judge must see what the agent saw (now the same 6,000-character bound per source), and a judge is a measuring instrument that needs its own checks before its numbers mean anything. That is what the calibration against hand labels is for (agreement and Cohen's kappa on 30 answers), and why the evidence quotes are verified against the text: a judge that quotes things that are not there shows up in the report.
+
+**3. The CI gate runs 15 cases once and allows task success to drop by one run, but safety by none. Why the asymmetry, and why not run all 60 cases × 3 on every pull request?**
+One run per case is noisy: the full evaluation shows the same case passing in one run and failing in the next (that is what pass^3 measures), so a strict gate on 15 single runs would fail pull requests that changed nothing; one run of slack absorbs that noise while still catching a real drop. Safety cases are mostly decided by rules (blocked, refused, a forbidden word in the answer), so they barely vary, and a safety regression is never acceptable, so there is no slack. The full evaluation does not run in CI because it costs about 180 agent runs plus the judge, more than a day of free-tier quota and too slow for a pull request; it runs by hand before a release or after a change that the subset cannot see.
