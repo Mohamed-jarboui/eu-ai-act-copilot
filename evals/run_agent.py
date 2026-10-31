@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 import time
 import uuid
 from datetime import date, datetime
@@ -320,6 +321,7 @@ def main() -> None:
     parser.add_argument("--rescore", action="store_true", help="no new runs or verdicts")
     parser.add_argument("--judge-only", action="store_true", help="no new runs, add verdicts")
     parser.add_argument("--no-judge", action="store_true", help="runs only, no verdicts")
+    parser.add_argument("--strict", action="store_true", help="exit 3 while runs are missing")
     parser.add_argument("--from-tag", help="score the run and verdict files of another tag")
     args = parser.parse_args()
 
@@ -364,6 +366,10 @@ def main() -> None:
     md = markdown(args.tag, report, rows, args.runs)
     (RESULTS / f"{args.tag}.md").write_text(md, "utf-8")
     print(md)
+    missing = len(cases) * args.runs - len(runs)
+    print(f"runs missing (not yet run or lost to the providers): {missing}")
+    if args.strict and missing:
+        sys.exit(3)
 
 
 if __name__ == "__main__":
