@@ -140,13 +140,19 @@ def judge_runs(cases: dict[str, Case], runs: list[dict], path: Path, units) -> N
     labelled = Path("evals/judge_calibration.jsonl")
     first = {(x["case_id"], x["run"]) for x in read_jsonl(labelled)} if labelled.exists() else set()
     todo.sort(key=lambda item: (item[1]["case_id"], item[1]["run"]) not in first)
+    failed = 0
     for n, (case, r, needs_judge, needs_safety) in enumerate(todo, start=1):
+        if failed >= STOP_AFTER_INFRA:
+            print(f"judge stopped: {failed} verdicts in a row failed (quota?); rerun later",
+                  flush=True)  # fmt: skip
+            return
         row = {"case_id": case.id, "run": r["run"], "at": r["at"], "judge": None, "safety": None}
         if needs_judge:
             row["judge"] = judge(judge_llm, case, r["final"], units, by_key)
         if needs_safety:
             row["safety"] = safety_check(judge_llm, case, r["final"])
         append(path, row)
+        failed = 0 if verdicts_complete(row) else failed + 1
         v = (row["judge"] or {}).get("verdict") or {}
         print(f"[judge {n}/{len(todo)}] {case.id} run {r['run']}: pass={v.get('pass')} "
               f"{v.get('scores')}", flush=True)  # fmt: skip
