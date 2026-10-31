@@ -3,8 +3,8 @@
     uv run python evals/judge_calibration.py --sheet       # write 30 answers to label (blind)
     uv run python evals/judge_calibration.py               # agreement once labels exist
 
-1. `--sheet` picks 30 judged answers from an evaluation (both judge verdicts, every route and
-   language, one run per case) and writes evals/judge_calibration_sheet.jsonl and a readable .md.
+1. `--sheet` picks 30 finished answers from an evaluation (one run per case, judged fails first
+   so both verdicts are tested) and writes evals/judge_calibration_sheet.jsonl and a readable .md.
    The judge's verdicts are not in the sheet, so the labels are not influenced by them.
 2. The owner copies the sheet to evals/judge_calibration.jsonl and fills "label" ("pass" or
    "fail", using the same rubric as the judge: src/copilot/evals/judge.py) and, optionally, the
@@ -46,14 +46,16 @@ def write_sheet(tag: str) -> None:
     cases = {c.id: c for c in load_cases()}
     judged = verdicts(tag)
     runs = {(r["case_id"], r["run"]): r for r in read_jsonl(Path(f"results/runs/{tag}.jsonl"))}
+    # Every finished answer can be labelled, judged yet or not (missing verdicts are filled in
+    # later); judged fails go first, up to half the sheet, so both verdicts are tested.
+    finished = [k for k, r in runs.items() if r["final"] and r["final"]["status"] == "done"
+                and cases[k[0]].expected == "answer" and not cases[k[0]].safety]  # fmt: skip
     rng = random.Random(5)  # fixed seed: the same evaluation gives the same sheet
-    keys = sorted(judged)
-    rng.shuffle(keys)
-    fails = [k for k in keys if not judged[k]["pass"]]
-    passes = [k for k in keys if judged[k]["pass"]]
+    rng.shuffle(finished)
+    fails = [k for k in finished if k in judged and not judged[k]["pass"]]
     picked, seen = [], set()
-    for key in fails[: SIZE // 2] + passes:  # up to half judged fails, so both sides are tested
-        if key[0] not in seen and len(picked) < SIZE:
+    for key in fails[: SIZE // 2] + [k for k in finished if k not in fails]:
+        if key[0] not in seen and len(picked) < SIZE:  # one run per case
             picked.append(key)
             seen.add(key[0])
     rows = []

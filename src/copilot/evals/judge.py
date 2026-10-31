@@ -14,6 +14,7 @@ import time
 from dataclasses import dataclass
 
 from copilot.agent.prompts import parse_json
+from copilot.answer.prompt import MAX_SOURCE_CHARS
 from copilot.ingest.models import Unit
 from copilot.llm.gemini import GeminiProvider
 from copilot.llm.groq import GroqProvider
@@ -22,7 +23,11 @@ from copilot.llm.router import FallbackLLM
 from copilot.retrieve.chunks import anchor_id
 
 CRITERIA = ("correctness", "completeness", "citation_accuracy", "format")
-MAX_REFERENCE_CHARS, MAX_CITED_CHARS, MAX_CITED = 2500, 1500, 10
+# The judge sees each cited provision as the agent saw it (the answer prompt's bound). An earlier
+# 1,500-character cut hid most of long articles (Art. 5 is 11,080 characters), and the judge
+# marked correct statements from the hidden part as wrong (docs/failures.md).
+MAX_CITED_CHARS, MAX_CITED, MAX_CITED_TOTAL = MAX_SOURCE_CHARS, 10, 30_000
+MAX_REFERENCE_CHARS = 4000
 
 RUBRIC = """You review answers written by a legal research assistant about the EU AI Act and
 the GDPR. You are strict: an answer that sounds right but says something the sources do not
@@ -132,8 +137,12 @@ def build_prompt(case, final: dict, all_units: list[Unit], units: dict) -> tuple
     language = final["language"]
     references = [(g, provision_text(units, all_units, g, language, MAX_REFERENCE_CHARS))
                   for g in case.gold[:4]]  # fmt: skip
-    cited = [(c["label"], provision_text(units, all_units, c["id"], language, MAX_CITED_CHARS))
-             for c in final["citations"][:MAX_CITED]]  # fmt: skip
+    cited, total = [], 0
+    for c in final["citations"][:MAX_CITED]:
+        text = provision_text(units, all_units, c["id"], language, MAX_CITED_CHARS)
+        text = text[: max(0, MAX_CITED_TOTAL - total)]
+        total += len(text)
+        cited.append((c["label"], text or "(not shown: the judge's source budget is used up)"))
     prompt = judge_prompt(case.question, final["answer"], references, cited)
     return prompt, final["answer"] + " " + " ".join(t for _, t in references + cited)
 

@@ -167,6 +167,18 @@ def test_judge_retries_an_unreadable_verdict_and_sees_the_cited_text(monkeypatch
     assert "Providers" in against and len(against) > len(ANSWER) + 100  # source text included
 
 
+def test_judge_sees_a_long_cited_article_as_the_agent_did():
+    long = final()
+    long["citations"] = [{"id": "aiact:art:5", "label": "AI Act Art. 5", "snippet": ""}]
+    long["answer"] = (
+        "Untargeted scraping for facial recognition databases is banned [AI Act Art. 5]."
+    )
+    _, against = judge_mod.build_prompt(
+        judged_case(), long, units(), judge_mod.units_by_key(units())
+    )
+    assert "untargeted scraping of facial images" in against  # Art. 5(1)(e), past 1,500 chars
+
+
 def test_judge_waits_on_rate_limits_then_records_the_failure(monkeypatch):
     waits = []
     monkeypatch.setattr(judge_mod.time, "sleep", waits.append)

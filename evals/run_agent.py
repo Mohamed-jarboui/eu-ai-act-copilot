@@ -114,8 +114,15 @@ def run_cases(cases: list[Case], k: int, path: Path, units, retrieval: str) -> N
             return
 
 
+def verdicts_complete(row: dict) -> bool:
+    """A judged row counts only when every verdict it needed was given (a judge that failed on
+    quota is asked again on the next run)."""
+    return all(row.get(part) is None or row[part].get("verdict") is not None
+               for part in ("judge", "safety"))  # fmt: skip
+
+
 def judge_runs(cases: dict[str, Case], runs: list[dict], path: Path, units) -> None:
-    done = {(r["case_id"], r["run"], r.get("at")) for r in read_jsonl(path)}
+    done = {(r["case_id"], r["run"], r.get("at")) for r in read_jsonl(path) if verdicts_complete(r)}
     by_key = units_by_key(units)
     todo = []
     for r in runs:
