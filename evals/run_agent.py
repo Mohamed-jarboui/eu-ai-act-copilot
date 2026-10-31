@@ -319,6 +319,7 @@ def main() -> None:
     parser.add_argument("--only", nargs="*", help="case ids to run (default: all)")
     parser.add_argument("--rescore", action="store_true", help="no new runs or verdicts")
     parser.add_argument("--judge-only", action="store_true", help="no new runs, add verdicts")
+    parser.add_argument("--no-judge", action="store_true", help="runs only, no verdicts")
     parser.add_argument("--from-tag", help="score the run and verdict files of another tag")
     args = parser.parse_args()
 
@@ -337,7 +338,7 @@ def main() -> None:
                 if r["case_id"] in by_id and r["run"] < args.runs]  # fmt: skip
     lost = [r for r in recorded if infra_failure(r)]
     runs = [r for r in recorded if not infra_failure(r)]
-    if not args.rescore:
+    if not args.rescore and not args.no_judge:
         judge_runs(by_id, runs, judge_path, units)
     rows = score(by_id, runs, read_jsonl(judge_path), units)
     summary = summarize(rows, args.runs)
