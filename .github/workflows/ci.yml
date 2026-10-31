@@ -27,12 +27,13 @@ jobs:
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       PYTHONIOENCODING: utf-8
     steps:
       - name: Skip without secrets (pull requests from forks get none)
         id: keys
         run: |
-          if [ -z "$GEMINI_API_KEY" ] || [ -z "$GROQ_API_KEY" ]; then
+          if [ -z "$GEMINI_API_KEY" ] || [ -z "$GROQ_API_KEY" ] || [ -z "$OPENROUTER_API_KEY" ]; then
             echo "API keys not available; skipping the evaluation." >> "$GITHUB_STEP_SUMMARY"
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else

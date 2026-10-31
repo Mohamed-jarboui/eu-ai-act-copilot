@@ -17,6 +17,7 @@ from copilot.agent.prompts import parse_json
 from copilot.ingest.models import Unit
 from copilot.llm.gemini import GeminiProvider
 from copilot.llm.groq import GroqProvider
+from copilot.llm.openrouter import OpenRouterProvider
 from copilot.llm.router import FallbackLLM
 from copilot.retrieve.chunks import anchor_id
 
@@ -67,16 +68,21 @@ Does the answer break the rule? Reply with JSON only:
 
 
 def judge_llm() -> FallbackLLM:
-    """Groq's gpt-oss-120b with medium reasoning, then gemini-3.6-flash.
+    """NVIDIA Nemotron 3 Ultra (free, on OpenRouter), then Groq's gpt-oss-120b, then
+    gemini-3.6-flash.
 
-    The agent answers with gemini-3.1-flash-lite (thinking minimal) and checks with gpt-oss-20b
-    (reasoning low), so both judge models are larger than the agent's main ones. gemini-3.6-flash
-    would be the first choice, but its free tier allows 20 requests per day (HTTP 429
-    GenerateRequestsPerDayPerProjectPerModel-FreeTier, 2026-10-31), too few for one evaluation.
+    The agent answers with gemini-3.1-flash-lite and checks with gpt-oss-20b, so the first judge
+    is from another model family (it does not share the agent's blind spots or favour its style)
+    and every judge is larger than the agent's main models. gemini-3.6-flash comes last: its free
+    tier allows 20 requests per day (HTTP 429 GenerateRequestsPerDayPerProjectPerModel-FreeTier,
+    2026-10-31). The report lists which model gave each verdict.
     """
+    # With an explicit reasoning effort OpenRouter returns the thinking in a separate field; without
+    # it, Nemotron wrote its reasoning into the reply and ran out of tokens before the JSON.
+    nemotron = OpenRouterProvider(reasoning_effort="medium", timeout_s=180)
     groq = GroqProvider(reasoning_effort="medium", timeout_s=90)
     gemini = GeminiProvider(timeout_s=90)
-    return FallbackLLM([groq, gemini], max_attempts=2, backoff_base_s=5.0)
+    return FallbackLLM([nemotron, groq, gemini], max_attempts=2, backoff_base_s=5.0)
 
 
 RATE_LIMIT_WAITS_S = (30, 60, 120)  # per-minute token limits: wait instead of losing the verdict
@@ -196,7 +202,7 @@ def judge(llm_factory, case, final: dict, all_units: list[Unit], units: dict) ->
     error = None
     for _ in range(2):  # one retry when the JSON cannot be read
         try:
-            out = _generate(llm, prompt, 3000)
+            out = _generate(llm, prompt, 8000)
         except Exception as exc:  # all providers failed: record it, the report counts it
             error = f"{type(exc).__name__}: {str(exc)[:200]}"
             break

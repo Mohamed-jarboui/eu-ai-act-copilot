@@ -219,6 +219,17 @@ def score(cases: dict[str, Case], runs: list[dict], judged: list[dict], units) -
     return rows
 
 
+def judge_models(judged: list[dict]) -> dict[str, int]:
+    """Which model gave the verdicts (the last successful call of each judged run)."""
+    counts: dict[str, int] = {}
+    for j in judged:
+        for part in ("judge", "safety"):
+            models = (j.get(part) or {}).get("models") or []
+            if models:
+                counts[models[-1]] = counts.get(models[-1], 0) + 1
+    return counts
+
+
 def pct(m: dict) -> str:
     return "n/a" if m["value"] is None else f"{m['value']:.3f} ({m['hits']}/{m['n']})"
 
@@ -231,7 +242,8 @@ def markdown(tag: str, report: dict, rows: list[dict], k: int) -> str:
         "",
         f"Cases `{report['cases_file']}` ({s['cases']} cases, {k} run(s) each, {s['runs']} runs), "
         f"commit `{report['commit']}`, retrieval `{report['retrieval']}`, run {report['date']}. "
-        "Judge: Groq gpt-oss-120b (fallback gemini-3.6-flash), rubric in "
+        "Judge: Nemotron 3 Ultra on OpenRouter (fallbacks: Groq gpt-oss-120b, gemini-3.6-flash; "
+        f"verdicts per model: {report['judge_models']}), rubric in "
         "`src/copilot/evals/judge.py`; " + report["judge_status"] + ".",
         "",
         "| Metric | Value |",
@@ -306,6 +318,7 @@ def main() -> None:
     parser.add_argument("--retrieval", choices=["bm25", "hybrid"], default="bm25")
     parser.add_argument("--only", nargs="*", help="case ids to run (default: all)")
     parser.add_argument("--rescore", action="store_true", help="no new runs or verdicts")
+    parser.add_argument("--judge-only", action="store_true", help="no new runs, add verdicts")
     parser.add_argument("--from-tag", help="score the run and verdict files of another tag")
     args = parser.parse_args()
 
@@ -318,7 +331,7 @@ def main() -> None:
     runs_path = RUNS_DIR / f"{source}.jsonl"
     judge_path = RUNS_DIR / f"{source}.judge.jsonl"
 
-    if not args.rescore:
+    if not args.rescore and not args.judge_only:
         run_cases(cases, args.runs, runs_path, units, args.retrieval)
     recorded = [r for r in latest(read_jsonl(runs_path))
                 if r["case_id"] in by_id and r["run"] < args.runs]  # fmt: skip
@@ -341,6 +354,7 @@ def main() -> None:
         "cases_file": "evals/agent_v1.jsonl" + (" (ci subset)" if args.subset else ""),
         "retrieval": args.retrieval, "k": args.runs, "judge_status": judge_status,
         "judge_cost_usd": round(sum(judge_costs), 6),
+        "judge_models": judge_models(read_jsonl(judge_path)),
         "not_measured": sorted(f"{r['case_id']}.{r['run']}" for r in lost),
         "summary": summary, "runs": rows,
     }  # fmt: skip
