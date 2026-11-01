@@ -121,7 +121,9 @@ def verdicts_complete(row: dict) -> bool:
                for part in ("judge", "safety"))  # fmt: skip
 
 
-def judge_runs(cases: dict[str, Case], runs: list[dict], path: Path, units) -> None:
+def judge_runs(
+    cases: dict[str, Case], runs: list[dict], path: Path, units, limit: int | None = None
+) -> None:
     done = {(r["case_id"], r["run"], r.get("at")) for r in read_jsonl(path) if verdicts_complete(r)}
     by_key = units_by_key(units)
     todo = []
@@ -139,7 +141,9 @@ def judge_runs(cases: dict[str, Case], runs: list[dict], path: Path, units) -> N
     # verdicts can be trusted, so they are worth the scarce free-tier judge calls the most.
     labelled = Path("evals/judge_calibration.jsonl")
     first = {(x["case_id"], x["run"]) for x in read_jsonl(labelled)} if labelled.exists() else set()
-    todo.sort(key=lambda item: (item[1]["case_id"], item[1]["run"]) not in first)
+    # then run 0 before runs 1 and 2: a one-run comparison needs only run 0
+    todo.sort(key=lambda item: ((item[1]["case_id"], item[1]["run"]) not in first, item[1]["run"]))
+    todo = todo[:limit] if limit is not None else todo
     failed = 0
     for n, (case, r, needs_judge, needs_safety) in enumerate(todo, start=1):
         if failed >= STOP_AFTER_INFRA:
@@ -338,6 +342,7 @@ def main() -> None:
     parser.add_argument("--only", nargs="*", help="case ids to run (default: all)")
     parser.add_argument("--rescore", action="store_true", help="no new runs or verdicts")
     parser.add_argument("--judge-only", action="store_true", help="no new runs, add verdicts")
+    parser.add_argument("--judge-limit", type=int, help="at most this many runs judged now")
     parser.add_argument("--no-judge", action="store_true", help="runs only, no verdicts")
     parser.add_argument("--strict", action="store_true", help="exit 3 while runs are missing")
     parser.add_argument("--from-tag", help="score the run and verdict files of another tag")
@@ -359,7 +364,7 @@ def main() -> None:
     lost = [r for r in recorded if infra_failure(r)]
     runs = [r for r in recorded if not infra_failure(r)]
     if not args.rescore and not args.no_judge:
-        judge_runs(by_id, runs, judge_path, units)
+        judge_runs(by_id, runs, judge_path, units, args.judge_limit)
     rows = score(by_id, runs, read_jsonl(judge_path), units)
     summary = summarize(rows, args.runs)
     agreement = RESULTS / "judge_agreement.json"
