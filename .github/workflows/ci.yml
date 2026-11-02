@@ -30,17 +30,19 @@ jobs:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       PYTHONIOENCODING: utf-8
     steps:
-      - name: Skip without secrets (pull requests from forks get none)
+      - uses: actions/checkout@v4
+      - name: Skip without secrets (pull requests from forks get none) or without a baseline
         id: keys
         run: |
           if [ -z "$GEMINI_API_KEY" ] || [ -z "$GROQ_API_KEY" ] || [ -z "$OPENROUTER_API_KEY" ]; then
             echo "API keys not available; skipping the evaluation." >> "$GITHUB_STEP_SUMMARY"
             echo "ok=false" >> "$GITHUB_OUTPUT"
+          elif [ ! -f results/eval_ci_baseline.json ]; then
+            echo "No results/eval_ci_baseline.json yet; skipping the evaluation." >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@v4
-        if: steps.keys.outputs.ok == 'true'
       - uses: astral-sh/setup-uv@v5
         if: steps.keys.outputs.ok == 'true'
         with:

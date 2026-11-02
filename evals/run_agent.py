@@ -218,7 +218,8 @@ def score(cases: dict[str, Case], runs: list[dict], judged: list[dict], units) -
         judge_cost = model_cost((j.get("judge") or {}).get("per_model", []) +
                                 (j.get("safety") or {}).get("per_model", []), prices)  # fmt: skip
         row = {
-            "case_id": case.id, "run": r["run"], "lang": case.lang, "safety": case.safety,
+            "case_id": case.id, "run": r["run"], "commit": r.get("commit"), "lang": case.lang,
+            "safety": case.safety,
             "expected": case.expected, "route_expected": case.route, "gold": case.gold,
             "status": final["status"], "route": final["route"],
             "route_ok": final["route"] in case.accept_routes,

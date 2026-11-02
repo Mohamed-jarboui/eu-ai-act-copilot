@@ -14,6 +14,8 @@ import argparse
 import json
 from pathlib import Path
 
+from copilot.evals.metrics import summarize
+
 OUT = Path("results/eval_v1_compare.md")
 METRICS = [
     ("task_success", "Task success"),
@@ -54,16 +56,33 @@ def main() -> None:
     parser.add_argument("after", type=Path)
     args = parser.parse_args()
     before, after = (json.loads(p.read_text("utf-8")) for p in (args.before, args.after))
+    # Only the cases measured on both sides (a run lost to the providers is not measured).
+    common = {r["case_id"] for r in before["runs"]} & {r["case_id"] for r in after["runs"]}
+    missing = sorted({r["case_id"] for r in before["runs"] + after["runs"]} - common)
+    for report in (before, after):
+        report["runs"] = [r for r in report["runs"] if r["case_id"] in common]
+        report["summary"] = summarize(report["runs"], 1)
     b, a = before["summary"], after["summary"]
-    if b["runs"] != a["runs"] or b["cases"] != a["cases"]:
-        raise SystemExit(f"not comparable: {b['runs']} vs {a['runs']} runs")
     lines = [
         "# Before / after the Stage 5 fixes",
         "",
-        f"Same {a['cases']} cases, one run each. Before: `{args.before}` (commit "
-        f"`{before['commit']}`, run 0 of the 3-run evaluation). After: `{args.after}` (commit "
-        f"`{after['commit']}`). Same judge, same retrieval (`{after['retrieval']}`).",
+        f"Same {a['cases']} cases, one run each"
+        + (f" (left out, not measured on both sides: {', '.join(missing)})" if missing else "")
+        + f". Before: `{args.before}` (run 0 of the 3-run evaluation; runs made with commit "
+        f"{commits(before)}). After: `{args.after}` (runs made with commit {commits(after)}). "
+        f"Same judge, same retrieval (`{after['retrieval']}`).",
         "",
+        *(
+            [
+                f"> **Provisional:** {b['judge_missing']} answered runs before and "
+                f"{a['judge_missing']} after have no verdict yet and count as failures, so task "
+                "success, judge pass and citation accuracy are not comparable until both sides "
+                "are judged. The other rows do not depend on the judge.",
+                "",
+            ]
+            if b["judge_missing"] or a["judge_missing"]
+            else []
+        ),
         "| Metric | Before | After |",
         "|---|---|---|",
         *[f"| {label} | {cell(b.get(key))} | {cell(a.get(key))} |" for key, label in METRICS],
@@ -87,6 +106,11 @@ def main() -> None:
     ]
     OUT.write_text("\n".join(lines), "utf-8")
     print("\n".join(lines))
+
+
+def commits(report: dict) -> str:
+    """The code the runs were made with (a rescored report carries the scoring commit)."""
+    return ", ".join(f"`{c}`" for c in sorted({r.get("commit") or "?" for r in report["runs"]}))
 
 
 def _usd(value) -> str:
