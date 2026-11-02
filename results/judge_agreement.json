@@ -1,0 +1,44 @@
+{
+  "tag": "eval_v1_before",
+  "labelled_by": [
+    "assistant (Claude), not the owner; 2026-10-31"
+  ],
+  "n": 30,
+  "agreement": 0.8,
+  "kappa": 0.587,
+  "trusted": false,
+  "rule": "agreement >= 0.8 and kappa >= 0.6",
+  "confusion": {
+    "labels fail / judge fail": 8,
+    "labels pass / judge pass": 16,
+    "labels pass / judge fail": 6
+  },
+  "per_criterion": {
+    "correctness": {
+      "n": 30,
+      "exact": 0.733,
+      "within_1": 0.933
+    },
+    "completeness": {
+      "n": 30,
+      "exact": 0.8,
+      "within_1": 1.0
+    },
+    "citation_accuracy": {
+      "n": 30,
+      "exact": 0.767,
+      "within_1": 0.967
+    },
+    "format": {
+      "n": 30,
+      "exact": 0.9,
+      "within_1": 0.967
+    }
+  },
+  "post_hoc": {
+    "rule": "pass when no criterion is 0 (post-hoc, to be confirmed on fresh labels)",
+    "n": 30,
+    "agreement": 0.9,
+    "kappa": 0.754
+  }
+}

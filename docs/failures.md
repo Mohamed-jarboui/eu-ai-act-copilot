@@ -54,3 +54,12 @@ What this shows and does not show:
 | Nemotron, without an explicit reasoning effort, wrote its reasoning into the reply and ran out of tokens. | Unreadable verdicts. | `ccc385c`: reasoning effort set, so OpenRouter returns it separately. |
 | A judge call that failed on quota was stored as done. | Those runs would never be judged. | `20fe1cb`: failed verdicts are asked again. |
 | Partial runs were sent to the judge. | Wasted judge quota on runs that fail anyway. | Only finished answers are judged. |
+
+## Judge calibration
+
+`results/judge_agreement.md`: the judge against 30 hand-labelled answers (labels by the assistant at the owner's request, marked in every row; not the owner's).
+
+- **Agreement 0.80, Cohen's kappa 0.587 (n = 30): not trusted** under the rule set before the run (agreement ≥ 0.8 and kappa ≥ 0.6). Judge-based numbers in this PR are therefore reported as provisional.
+- Every disagreement goes one way: 6 answers the labels pass and the judge fails, none the other way; the judge is stricter.
+- 4 of the 6 (l01.0, l04.1, q28.2, q36.1) are correctness 1 from the judge, which the rubric defines as "a minor imprecision that would not mislead", while the pass rule fails anything below 2. The other two are judgement calls where the judge is harsher: a thin answer (m01.0, completeness 0) and a wrong citation (c08.0, correctness 0).
+- **Post-hoc, not the official result:** with the rule "pass when no criterion is 0", agreement would be 0.90 and kappa 0.754 on the same 30. Because that rule was found by reading these disagreements, it is a hypothesis: it needs fresh labels (ideally the owner's) before the pass rule is changed.

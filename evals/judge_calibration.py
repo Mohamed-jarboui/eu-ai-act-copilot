@@ -95,7 +95,28 @@ def agreement(tag: str) -> None:
     n = len(pairs)
     agree = round(sum(a == b for a, b in zip(mine, judge, strict=True)) / n, 3) if n else None
     kappa = cohen_kappa(mine, judge)
-    confusion = Counter(f"owner {a} / judge {b}" for a, b in zip(mine, judge, strict=True))
+    confusion = Counter(f"labels {a} / judge {b}" for a, b in zip(mine, judge, strict=True))
+
+    # Post-hoc, NOT the official result: the same pairs under a looser pass rule (no criterion
+    # at 0, so correctness 1, "a minor imprecision that would not mislead", passes). Found by
+    # reading the disagreements of this very set, so it needs fresh labels to be confirmed.
+    def no_zero(scores):
+        return "pass" if min(scores.values()) >= 1 else "fail"
+
+    scored_pairs = [(r, v) for r, v in pairs if all(isinstance((r.get("scores") or {}).get(c), int)
+                                                    for c in CRITERIA)]  # fmt: skip
+    loose_mine = [no_zero(r["scores"]) for r, _ in scored_pairs]
+    loose_judge = [no_zero(v["scores"]) for _, v in scored_pairs]
+    post_hoc = {
+        "rule": "pass when no criterion is 0 (post-hoc, to be confirmed on fresh labels)",
+        "n": len(scored_pairs),
+        "agreement": round(
+            sum(a == b for a, b in zip(loose_mine, loose_judge, strict=True)) / len(scored_pairs), 3
+        )
+        if scored_pairs
+        else None,  # fmt: skip
+        "kappa": cohen_kappa(loose_mine, loose_judge),
+    }
     per_criterion = {}
     for name in CRITERIA:
         scored = [(r["scores"][name], v["scores"][name]) for r, v in pairs
@@ -111,15 +132,19 @@ def agreement(tag: str) -> None:
     report = {"tag": tag, "labelled_by": labelled_by, "n": n, "agreement": agree, "kappa": kappa,
               "trusted": trusted,
               "rule": f"agreement >= {MIN_AGREEMENT} and kappa >= {MIN_KAPPA}",
-              "confusion": dict(confusion), "per_criterion": per_criterion}  # fmt: skip
+              "confusion": dict(confusion), "per_criterion": per_criterion,
+              "post_hoc": post_hoc}  # fmt: skip
     OUT_JSON.write_text(json.dumps(report, indent=2) + "\n", "utf-8")
-    lines = ["# Judge vs owner labels", "",
+    lines = ["# Judge vs hand labels", "",
              f"{n} labelled answers from `{tag}`, labelled by: {'; '.join(labelled_by)}. "
              f"Agreement {agree}, Cohen's kappa {kappa}. "
              f"Trusted: **{trusted}** (rule: {report['rule']}).", "",
              "Confusion: " + ", ".join(f"{k}: {v}" for k, v in sorted(confusion.items())), "",
              *[f"- {k}: exact {v['exact']}, within 1 point {v['within_1']} (n={v['n']})"
-               for k, v in per_criterion.items()], ""]  # fmt: skip
+               for k, v in per_criterion.items()], "",
+             f"Post-hoc, not the official result: under the rule '{post_hoc['rule']}', "
+             f"agreement {post_hoc['agreement']}, kappa {post_hoc['kappa']} "
+             f"(n={post_hoc['n']}).", ""]  # fmt: skip
     OUT_MD.write_text("\n".join(lines), "utf-8")
     print("\n".join(lines))
 
