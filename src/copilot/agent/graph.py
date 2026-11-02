@@ -24,6 +24,7 @@ from pydantic import BaseModel
 from copilot.agent import nodes
 from copilot.agent.budget import limit_hit
 from copilot.agent.context import BudgetExceeded, RunContext, Scope
+from copilot.agent.guards import redact
 from copilot.agent.state import LIMITS, STATE_TYPES, AgentState, BudgetUsed, TaskState
 from copilot.answer.language import detect_language
 from copilot.llm.base import ProviderError
@@ -50,7 +51,10 @@ def guarded(name: str, fn: Callable[[AgentState, Scope], None], ctx: RunContext)
             return scope.updates(status="partial", limit_hit=exc.limit)
         except ProviderError as exc:  # every provider failed: a partial result, not a crash
             scope.task.notes.append(f"model providers unavailable: {type(exc).__name__}")
-            scope.event("error", error=type(exc).__name__)
+            # the provider and message too: two bad requests in the Stage 5 evaluation could not
+            # be explained from the error type alone (redacted: provider messages may echo input)
+            scope.event("error", error=type(exc).__name__, provider=getattr(exc, "provider", ""),
+                        message=redact(str(exc))[:300])  # fmt: skip
             return scope.updates(status="partial")
         return scope.updates()
 

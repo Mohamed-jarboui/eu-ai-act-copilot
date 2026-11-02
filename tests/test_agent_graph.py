@@ -293,7 +293,8 @@ def test_provider_failure_is_a_partial_result_not_a_crash():
     script = Script(answer=lambda p: AllProvidersFailedError("all down"))
     answer, events = build_runner(script).run("Which AI practices are prohibited?", "en")
     assert answer.status == "partial" and "model providers unavailable" in answer.notes[0]
-    assert "error" in kinds(events)
+    error = next(e for e in events if e["type"] == "error")["data"]
+    assert error["error"] == "AllProvidersFailedError" and "all down" in error["message"]
 
 
 # --- guardrails, streaming, threads ------------------------------------------------------------
