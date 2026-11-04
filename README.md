@@ -36,7 +36,18 @@ To run a script with your keys loaded: `uv run --env-file .env python your_scrip
 
 How an answer is made: retrieve the best chunks in the question's language, refuse if retrieval is empty or weak, let a model answer using only those numbered sources with `[AI Act Art. 6(2)]`-style citations (or `NOT_COVERED`), then a second cheap model call checks every sentence against the sources it cites. Unsupported sentences are removed and listed; if nothing is left the system says the texts do not cover the question. Citations that point outside the supplied sources are removed without asking the checker.
 
-Known limits: the daily Gemini free-tier embedding quota means vectors exist for English only for now (other languages answer with BM25, which the evaluation shows misses paraphrases); the cosine refusal threshold exists for English only and is provisional (9 in-scope and 1 out-of-scope question, see `docs/learning-log.md`); "grounded" means the sentences are supported by the sources that were retrieved, not that the right sources were found (see example 7); response times depend heavily on provider load (the examples below took 1.7 to 70 s, and three of the slow ones took about 4 s when asked again); this gives information about the texts, not legal advice.
+Retrieval quality (`results/retrieval.md`, 37 gold questions over EN, FR and DE, run 2026-11-01):
+
+| Method | recall@10 | MRR | p50 latency |
+|---|---|---|---|
+| BM25 | 0.797 | 0.652 | 1 ms |
+| vector | 0.973 | 0.864 | 362 ms |
+| hybrid (RRF) | 0.946 | 0.798 | 365 ms |
+| hybrid + rerank | 0.987 | 0.953 | 1395 ms |
+
+Hybrid + rerank is best. Vector alone beats plain hybrid because fusing in BM25's weaker ranking pulls good results down, most of all in German. The app's `/ask` path currently uses plain hybrid. With 12 or 13 questions per language, the per-language differences are suggestive only (see `docs/learning-log.md`, Stage 2).
+
+Known limits: the cosine refusal threshold (0.65 in EN, FR and DE) is still provisional. In English, in-scope (n=13) and out-of-scope (n=13) scores overlap, because questions about other laws score like in-scope ones, so the gate only catches clearly unrelated questions. French and German have only one out-of-scope question each (see `docs/learning-log.md`); "grounded" means the sentences are supported by the sources that were retrieved, not that the right sources were found (see example 7); response times depend heavily on provider load (the examples below took 1.7 to 70 s, and three of the slow ones took about 4 s when asked again); this gives information about the texts, not legal advice.
 
 ## The agent
 
