@@ -42,9 +42,30 @@ uv run --env-file .env python evals/run_retrieval.py                            
 uv run --env-file .env python evals/run_retrieval.py --methods bm25 --tag bm25_all   # no API calls
 ```
 
-Result files are named after `--tag`. As of 2026-10-29 only `results/retrieval_bm25_all.*` exists: English chunks are embedded and cached, French and German are not, and the vector, hybrid and rerank numbers are still to be produced.
+Result files are named after `--tag`. `results/retrieval_bm25_all.*` is the earlier BM25-only run (2026-10-29).
 
-**Daily rerun on the maintainer's machine (Windows):** a scheduled task `EuAiActCopilot-RetrievalEval` runs `scripts/daily_retrieval_eval.ps1` every day at 08:10 (Gemini's quota resets around 08:00 Tunisian time). Each run resumes from the disk cache, appends to `data/cache/daily_eval.log`, and when a run completes (exit code 0, `results/retrieval.json` written) the script removes the task. Check progress with `Get-Content data/cache/daily_eval.log -Tail 20`; stop it with `Unregister-ScheduledTask -TaskName EuAiActCopilot-RetrievalEval`.
+**Daily rerun on the maintainer's machine (Windows):** a scheduled task `EuAiActCopilot-RetrievalEval` ran `scripts/daily_retrieval_eval.ps1` every day at 08:10 (Gemini's quota resets around 08:00 Tunisian time), resuming from the disk cache each time. The full run completed on 2026-11-01 and the script then removed the task. If the cache is ever lost, the same script can be scheduled again.
+
+### Results (run 2026-11-01, `results/retrieval.json` and `results/retrieval.md`)
+
+37 scored questions (13 EN, 12 FR, 12 DE), each searched in its own language over 1092 chunks. Rerunning from the cache on 2026-11-04 made no API calls and gave identical quality numbers.
+
+| Method | recall@5 | recall@10 | MRR | p50 latency |
+|---|---|---|---|---|
+| bm25 | 0.694 | 0.797 | 0.652 | 1 ms |
+| vector | 0.896 | 0.973 | 0.864 | 362 ms |
+| hybrid | 0.878 | 0.946 | 0.798 | 365 ms |
+| hybrid_rerank | 0.946 | 0.987 | 0.953 | 1395 ms |
+
+- **Hybrid + rerank wins** on every overall metric: the first gold hit is at rank 1 for 34 of 37 questions (vector 29, hybrid 26, BM25 22). It costs one rerank call and about 1 s more at p50.
+- **Vector beats plain hybrid.** Equal-weight RRF lets a poor BM25 ranking pull the right article down: hybrid's first hit is worse than vector's for 11 questions and better for 6. The gap is largest in German (MRR: vector 0.958, hybrid 0.722, BM25 0.578). In French, where BM25 is strong (0.772), hybrid beats vector (0.823 against 0.718).
+- **Vectors fix BM25's vocabulary misses:** BM25 has 7 questions with no gold hit in the top 10, the other three methods have none.
+- Per-language cells rest on 12 or 13 questions, and per-scope "both" cells on 4. Treat differences there as suggestive.
+- The `rerank USD` figure in `results/retrieval.md` used the `openai/gpt-oss-20b` price from an `evals/prices.json` (Groq, 2026-10-31) that is not on `main` yet, so a rerun on `main` prints `n/a` there.
+
+## refusal_v0.jsonl
+
+12 English out-of-scope questions for calibrating the refusal threshold: 6 `unrelated` (r01-r06) and 6 `adjacent` (r07-r12, about other laws or ML practice). `make calibrate` uses them together with the 3 `none` questions in `retrieval_v0.jsonl`. Calibration as of 2026-11-04 (all 52 questions embedded): English out-of-scope scores 0.529 to 0.708 overlap English in-scope ones (0.699 to 0.814), so the threshold stays provisional. French and German have only one out-of-scope question each, so more are needed there.
 
 ## routes_v0.jsonl
 

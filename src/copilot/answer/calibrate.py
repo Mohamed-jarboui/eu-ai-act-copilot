@@ -80,6 +80,60 @@ def collect() -> list[dict]:
     return rows
 
 
+MIN_OUT_OF_SCOPE = 5  # fewer negatives than this in a language and no threshold is proposed
+
+
+def choose_threshold(
+    inside: list[float], outside: list[float], min_outside: int = MIN_OUT_OF_SCOPE
+) -> float | None:
+    """Propose a cosine threshold from measured scores, or None when the data does not support one.
+
+    `inside` holds the best cosine of in-scope questions (they must NOT be refused), `outside`
+    that of out-of-scope questions (they should be). Return None when there are no in-scope
+    scores, fewer than `min_outside` out-of-scope ones, or when the groups overlap (some
+    out-of-scope score >= the lowest in-scope score). Otherwise return the midpoint of the gap
+    between the highest out-of-scope score and the lowest in-scope one, rounded to 3 decimals.
+    """
+    # TODO(me): implement the rule in the docstring.
+    # Hint: three early `return None` checks, then the gap is (max(outside), min(inside)).
+    # Placeholder: never propose a threshold, so nothing changes until the rule is written.
+    return None
+
+
+def by_language(rows: list[dict]) -> dict[str, dict[str, list[float]]]:
+    """Known cosines per language, split into in-scope and out-of-scope."""
+    groups: dict[str, dict[str, list[float]]] = {}
+    for r in rows:
+        if r["cosine"] is None:
+            continue
+        group = groups.setdefault(r["lang"], {"inside": [], "outside": []})
+        group["outside" if r["scope"] == "none" else "inside"].append(r["cosine"])
+    return groups
+
+
+def report_by_language(rows: list[dict]) -> None:
+    from copilot.answer.refusal import COSINE_MIN
+
+    print("\nper language (best cosine):")
+    for lang, g in sorted(by_language(rows).items()):
+        inside, outside = g["inside"], g["outside"]
+        parts = [f"{lang}  in-scope n={len(inside)}"]
+        if inside:
+            parts.append(f"{min(inside):.3f}-{max(inside):.3f}")
+        parts.append(f"| out-of-scope n={len(outside)}")
+        if outside:
+            parts.append(f"{min(outside):.3f}-{max(outside):.3f}")
+        proposed = choose_threshold(inside, outside)
+        parts.append("| proposed: " + ("none" if proposed is None else f"{proposed:.3f}"))
+        current = COSINE_MIN.get(lang)
+        if current is not None:
+            wrong = sum(c < current for c in inside)
+            caught = sum(c < current for c in outside)
+            parts.append(f"| current {current}: refuses {wrong}/{len(inside)} in-scope, "
+                         f"{caught}/{len(outside)} out-of-scope")  # fmt: skip
+        print(" ".join(parts))
+
+
 def main() -> None:
     if "--embed" in sys.argv:
         fetch_missing_query_embeddings()
@@ -100,6 +154,7 @@ def main() -> None:
         print(f"{label:13} BM25/token: min {min(bm25):.2f} median {statistics.median(bm25):.2f} "
               f"max {max(bm25):.2f} | cosine known for {len(cos)} of {len(group)}"
               + (f": min {min(cos):.3f} max {max(cos):.3f}" if cos else ""))  # fmt: skip
+    report_by_language(rows)
 
 
 if __name__ == "__main__":

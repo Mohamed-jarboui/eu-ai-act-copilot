@@ -12,9 +12,15 @@ On 2026-10-29 the owner asked for the `TODO(me)` items to be implemented so the 
 | 2 | 1 | `ingest/refs.py` (`extract_cross_refs`) | Lists and ranges are expanded; references to other acts are skipped. The corpus was regenerated with real `refs` in all three languages. |
 | 3-5 | 2 | `retrieve/fusion.py`, `retrieve/metrics.py` | RRF uses ranks, not scores; recall counts each gold id once. The BM25 numbers are reproduced exactly (0.694 / 0.797 / 0.652). |
 | 6 | 3 | `answer/citations.py` (`parse_citation`) | The inverse of `labels.label_for`; every one of the 1092 corpus labels round-trips. Unknown labels return `None` so the sentence is dropped, not guessed. |
-| 7 | 3 | `answer/refusal.py` (`should_refuse`) | **The weakest piece.** English-only cosine threshold 0.65, calibrated on 9 in-scope questions (0.699 to 0.814) and 1 out-of-scope one (0.599). Provisional, because the embedding quota blocked more data. BM25 scores are not used. |
+| 7 | 3 | `answer/refusal.py` (`should_refuse`) | **The weakest piece.** Cosine threshold 0.65 in EN, FR and DE, recalibrated on 2026-11-04 on 52 questions and **still provisional**: English in-scope and out-of-scope scores overlap, and FR and DE have only one out-of-scope question each (see "Recalibration on 2026-11-04" in Stage 3). BM25 scores are not used. |
 
-Still needing a human decision: item 7's threshold (add out-of-scope questions, embed them, recalibrate with `python -m copilot.answer.calibrate --embed`; `evals/refusal_v0.jsonl` holds 12 English ones that are not embedded yet).
+### Open TODO(me) (added 2026-11-04)
+
+| # | Stage | File | What to write |
+|---|---|---|---|
+| 8 | 2/3 | `answer/calibrate.py` (`choose_threshold`) | Propose a cosine threshold from measured in-scope and out-of-scope scores, or `None` when the groups overlap or there are fewer than `min_outside` out-of-scope scores. The rule is in the docstring; the placeholder always returns `None`. `test_choose_threshold_midpoint_of_the_gap` is marked `xfail` until it is written and will then show as XPASS (remove the marker). After implementing it, `make calibrate` should still print `proposed: none` for all three languages: work out why before running it. |
+
+Still needing a human decision: item 7's threshold. To make it a calibration rather than a provisional value, add out-of-scope questions in French and German (and more "adjacent" English ones), embed them with `python -m copilot.answer.calibrate --embed` and look at the per-language report.
 
 ---
 
@@ -227,9 +233,35 @@ Skip it (or, better in a later version, record it with its target regulation). R
 
 ## Stage 2: retrieval
 
-### Status: the vector numbers are not in yet
+### Results: all four methods, EN, FR and DE (run 2026-11-01)
 
-The first live run embedded all English chunks (1084 distinct texts) and then hit Gemini's free-tier **daily** limit (1000 embedding requests per day, "retry in about 16h"). The only results so far are BM25 on all 37 scored questions (`results/retrieval_bm25_all.json`). To finish, rerun the commands in `evals/README.md` ("Finishing the vector results") once per day, or enable billing on the key (your call). Until then there is no honest answer to "which method wins".
+The first live run embedded all English chunks (1084 distinct texts) and then hit Gemini's free-tier **daily** limit (1000 embedding requests per day). A daily scheduled task reran the evaluation from the disk cache until every chunk was embedded, and the full run finished on 2026-11-01 (`results/retrieval.json`, `results/retrieval.md`). Rerunning it from the cache on 2026-11-04 made no API calls and gave identical quality numbers.
+
+37 scored questions (13 EN, 12 FR, 12 DE), each searched in its own language over 1092 chunks:
+
+| Method | recall@5 | recall@10 | MRR | first hit at rank 1 | p50 latency |
+|---|---|---|---|---|---|
+| bm25 | 0.694 | 0.797 | 0.652 | 22 of 37 | 1 ms |
+| vector | 0.896 | 0.973 | 0.864 | 29 of 37 | 362 ms |
+| hybrid (RRF of the two) | 0.878 | 0.946 | 0.798 | 26 of 37 | 365 ms |
+| hybrid + rerank | **0.946** | **0.987** | **0.953** | **34 of 37** | 1395 ms |
+
+By question language, recall@10 / MRR:
+
+| Method | de (n=12) | en (n=13) | fr (n=12) |
+|---|---|---|---|
+| bm25 | 0.625 / 0.578 | 0.846 / 0.610 | 0.917 / 0.772 |
+| vector | 1.000 / 0.958 | 0.962 / 0.910 | 0.958 / 0.718 |
+| hybrid | 0.917 / 0.722 | 0.962 / 0.846 | 0.958 / 0.823 |
+| hybrid + rerank | 0.958 / 0.958 | 1.000 / 1.000 | 1.000 / 0.896 |
+
+**Which method wins and why.**
+- **Hybrid + rerank is best on every overall metric.** The reranker reorders the fused top candidates by reading question and passage together, so it puts the right article first for 34 of 37 questions. It costs about 1 s more per query at p50 (1395 ms against 365 ms) and one extra model call.
+- **Vector alone beats hybrid** (MRR 0.864 against 0.798). RRF gives both rankings equal weight, so when BM25 ranks the right article badly, fusing it in pulls that article down. Hybrid's first hit was worse than vector's for 11 questions and better for 6. The damage is largest in German, where BM25 is weakest (MRR 0.578): vector 0.958, hybrid 0.722.
+- **French is the exception:** BM25 is strong there (MRR 0.772) and hybrid beats vector (0.823 against 0.718). Fusion helps when both rankers are good and hurts when one is poor.
+- **The paraphrase hypothesis held.** The BM25 vocabulary misses listed below are found by vectors: q38 ("Bußgelder") moves from outside the top 50 to rank 1, q04 ("banned") from 13 to 1, q28 from 32 to 1, q34 from 24 to 2. BM25 has 7 questions with no hit in the top 10; vector, hybrid and hybrid + rerank have none.
+- **Consequence for the app, not acted on yet:** `answer/retrieval.py` (the `/ask` path) uses plain hybrid with no rerank, which is the third-best method here. Switching it to vector alone or adding the rerank step is a separate decision with a latency cost.
+- Caveat: 12 or 13 questions per language and 4 for "both regulations" are small samples. A difference of one or two questions moves a cell by 0.08 to 0.25, so the per-language ordering is suggestive, while the overall ordering (n=37) is clearer.
 
 ### TODO #3, #4, #5: `rrf_fuse`, `recall_at_k`, `reciprocal_rank` (implemented)
 
@@ -279,7 +311,7 @@ def reciprocal_rank(ranked, gold):
 - By question language, recall@10 / MRR: German 0.625 / 0.578 (n=12), English 0.846 / 0.610 (n=13), French 0.917 / 0.772 (n=12). By scope: AI Act 0.804 / 0.672 (n=23), GDPR 0.900 / 0.663 (n=10), questions needing both regulations 0.500 / 0.514 (n=4). With 4 to 13 questions per cell, differences of this size could be noise.
 - **Most misses are vocabulary mismatches**, checked against the texts: q38 asks for "Bußgelder" but GDPR Art. 83 (German) says "Geldbußen" and never "Bußgeld" (not in the top 50); q04 says "banned" while Art. 99 says "prohibition"; q03 says "chatbot", which Art. 50 never uses ("interact directly with natural persons"); q34 uses the verb "beschweren" while Art. 85 has "Beschwerde", and my crude stemmer maps them to different tokens (`beschwer` vs `beschwerd`). q28 is not explained: Art. 16 is titled almost like the question and still ranks 32nd, and I did not isolate why.
 - Known weakness of the tokenizer, seen but not fixed: "practices" becomes `practic` while "practice" stays `practice`. Fixing it after seeing the misses would be tuning on the test set, so any such change should be a separate, documented commit, ideally judged on questions not in this set.
-- Hypothesis, **not a result**: dense embeddings should help exactly on these paraphrase misses, and hybrid should keep BM25's exact-term wins. The vector runs will confirm or refute that.
+- Hypothesis at the time: dense embeddings should help exactly on these paraphrase misses, and hybrid should keep BM25's exact-term wins. The vector runs confirmed the first half and refuted the second for German and English (see "Which method wins and why" above).
 
 ### Questions and answers
 
@@ -291,6 +323,15 @@ q15 ("how does the regulation define an AI system?") has gold `aiact:art:3`. The
 
 **3. What failed on the first live run, why did waiting not help, and what did the cache buy us?**
 Gemini's free tier has a per-day cap (1000 embedding texts), which is a different limit from the per-minute rate limit the router's backoff is built for. My first embedder retried for about 20 minutes against a limit that resets in about 16 hours. Now it detects the `PerDay` error and stops immediately (`QuotaExhaustedError`, with a test). The disk cache means nothing is embedded twice: the 1084 English embeddings, the 5 query embeddings done so far, and later every rerank score survive the failure, so each daily rerun continues where the last stopped and costs nothing for what is already done. The lesson is to check quotas and plan the cost before a long job, and to make jobs resumable.
+
+**4. Vector alone has MRR 0.864 and hybrid 0.798. How can adding a second ranker make results worse, and why does French behave the other way?**
+RRF adds `1 / (60 + rank)` from each list with equal weight. If vector puts the right article at rank 1 and BM25 puts it at rank 32, a passage that both rank around 5 can collect more fused score and overtake it. Fusion only helps when the second ranker is right about as often as the first. In German, BM25 is weak (MRR 0.578, the compound-word and stemming misses), so it mostly adds noise. In French, BM25 is strong (0.772, better than vector's 0.718), so the two lists correct each other and hybrid wins (0.823). The reranker sidesteps the question: it only needs the right passage somewhere in the fused candidates, then reads each one against the question.
+
+**5. English in-scope cosines run from 0.699 to 0.814 and out-of-scope ones from 0.529 to 0.708. Why keep 0.65 instead of moving it to 0.70, which would refuse the two worst out-of-scope questions?**
+At 0.70 q03 (0.699, "chatbot") would be refused, a real AI Act question that Art. 50 answers. The errors are not symmetric: a wrong refusal silently hides a correct answer, while an out-of-scope question that gets through still meets the model's `NOT_COVERED` instruction and the grounding check, which is how the GPU question was refused in the first live test. With overlapping groups, the threshold should sit where it makes no wrong refusals on the data seen, plus a margin, because new in-scope questions will score lower than the lowest one measured. And 0.70 would be fitted to 13 questions, with q03 just 0.001 above it.
+
+**6. With `choose_threshold` implemented, why does `make calibrate` still print `proposed: none` in all three languages, even though FR and DE separate perfectly?**
+In English the groups overlap (0.708 ≥ 0.699), so there is no gap to take a midpoint of. In French and German there is a gap, but it rests on one out-of-scope question each, below `min_outside = 5`. One negative tells you that one unrelated question (VAT rates, income tax) scores low, not where adjacent questions would land. Refusing to propose a number is the honest output, and the provisional 0.65 for FR and DE is a human judgement written down with its reasons, not a calibration.
 
 ---
 
@@ -305,7 +346,22 @@ Gemini's free tier has a per-day cap (1000 embedding texts), which is a differen
 
 *Status: both implemented. `test_every_corpus_label_round_trips` turns every one of the 1092 indexed chunks into its label and back through the parser.*
 
-**Why #7 does not use BM25 scores: BM25 scores cannot tell out-of-scope questions from in-scope ones.** `make calibrate` (no API calls) prints, per gold question, the best BM25 score per query token: in-scope questions (n=37) range from 1.04 to 4.09 (median 1.77); the 3 out-of-scope questions score 0.00, 2.50 and 2.69, right inside that range, because "What is the best GPU for training a large language model?" shares words like "training" and "model" with the AI Act. Cosine similarity of the best vector hit is the better signal, and `refusal.py` uses it for English: `COSINE_MIN = {"en": 0.65}`, set between the lowest of the 9 in-scope English questions whose embeddings were fetched (0.699 to 0.814) and the one out-of-scope question (the GPU question, 0.599). **That is a provisional value resting on 1 negative against 9 positives**, because the bulk embedding quota ran out (it also blocked the 12 extra out-of-scope questions in `evals/refusal_v0.jsonl`). It is deliberately conservative since the model's `NOT_COVERED` answer and the grounding check still follow. French and German are not gated until their vectors exist and the threshold is recalibrated (`python -m copilot.answer.calibrate --embed`).
+**Why #7 does not use BM25 scores: BM25 scores cannot tell out-of-scope questions from in-scope ones.** `make calibrate` (no API calls) prints, per gold question, the best BM25 score per query token: in-scope questions (n=37) range from 1.04 to 4.09 (median 1.77); the 3 out-of-scope questions score 0.00, 2.50 and 2.69, right inside that range, because "What is the best GPU for training a large language model?" shares words like "training" and "model" with the AI Act. Cosine similarity of the best vector hit is the better signal, and `refusal.py` uses it for English: `COSINE_MIN = {"en": 0.65}`, set between the lowest of the 9 in-scope English questions whose embeddings were fetched (0.699 to 0.814) and the one out-of-scope question (the GPU question, 0.599). **That is a provisional value resting on 1 negative against 9 positives**, because the bulk embedding quota ran out (it also blocked the 12 extra out-of-scope questions in `evals/refusal_v0.jsonl`). It is deliberately conservative since the model's `NOT_COVERED` answer and the grounding check still follow. (Superseded by the recalibration below.)
+
+### Recalibration on 2026-11-04
+
+All 52 questions now have a cosine (`python -m copilot.answer.calibrate --embed` fetched the 14 missing question embeddings). The per-language report it prints:
+
+| Language | in-scope n | in-scope best cosine | out-of-scope n | out-of-scope best cosine | 0.65 refuses |
+|---|---|---|---|---|---|
+| en | 13 | 0.699 to 0.814 | 13 | 0.529 to 0.708 | 0 of 13 in-scope, 9 of 13 out-of-scope |
+| fr | 12 | 0.728 to 0.835 | 1 | 0.576 | 0 of 12 in-scope, 1 of 1 out-of-scope |
+| de | 12 | 0.725 to 0.850 | 1 | 0.568 | 0 of 12 in-scope, 1 of 1 out-of-scope |
+
+- **English does not separate.** The 7 unrelated questions (capital of Australia, flu symptoms, the GPU question, ...) score 0.529 to 0.599. The 6 "adjacent" ones, about other laws or ML practice, score 0.608 to 0.708, and two of them (the US Executive Order on AI, 0.701; the Digital Services Act penalty, 0.708) score above the lowest in-scope question (q03, the chatbot question, 0.699). No threshold refuses them without also refusing q03.
+- **Decision: keep 0.65 in English, still provisional.** A wrong refusal hides a real answer, and the other safeguards (the model's `NOT_COVERED`, citation validation, grounding) exist for the adjacent cases. 0.65 refuses all 7 unrelated questions and 2 of the 6 adjacent ones, with a margin of 0.049 below the lowest in-scope score.
+- **French and German get the same provisional 0.65.** It refuses none of their in-scope questions and their single out-of-scope question each, and the midpoint of each language's gap is about the same (0.652 FR, 0.647 DE). But one negative per language is not a calibration: an adjacent French or German question would probably behave like the English ones. Before these changes FR and DE were not gated at all.
+- Worth knowing: cosine scales are comparable across these languages here (the same embedding model and the same corpus), which is why one number works for all three. That is an observation on this data, not a general rule.
 
 <details>
 <summary>The implementations (now in <code>citations.py</code> and <code>refusal.py</code>)</summary>
@@ -356,7 +412,7 @@ A wrong answer can get through at four places, so there are four layers:
 ### Questions and answers
 
 **1. Why does the system have four layers that can refuse or remove text, and why is a BM25 threshold not one of them?**
-Each layer catches a different failure: retrieval found nothing or something unrelated (cheap, no model call), retrieval found plausible but non-answering text (the model says `NOT_COVERED`), the model cited something it was not given (validation), or the model stated more than the sources say (grounding check). A BM25 threshold does not work because the score depends on the query length and the corpus statistics, and measured on the gold set the out-of-scope questions score inside the in-scope range (per token: 2.50 and 2.69 against 1.04 to 4.09). Cosine similarity has a fixed scale, which is why that gate exists, but it is not calibrated yet.
+Each layer catches a different failure: retrieval found nothing or something unrelated (cheap, no model call), retrieval found plausible but non-answering text (the model says `NOT_COVERED`), the model cited something it was not given (validation), or the model stated more than the sources say (grounding check). A BM25 threshold does not work because the score depends on the query length and the corpus statistics, and measured on the gold set the out-of-scope questions score inside the in-scope range (per token: 2.50 and 2.69 against 1.04 to 4.09). Cosine similarity has a fixed scale, which is why that gate exists, but measured on 52 questions it still cannot separate the "adjacent" English questions about other laws from the in-scope ones (see "Recalibration on 2026-11-04"), so it only catches clearly unrelated questions.
 
 **2. Why is a citation to "Art. 6" accepted when the source is "Art. 6(2)", but "Art. 6(1)" is rejected, and what does the rule protect against?**
 `supports(cited, source)` accepts equal ids or one containing the other (an ancestor or a descendant). Citing the article when the model was shown one of its paragraphs is a fair summary, and citing a point below a paragraph is fair too, so both are still checked against the source text by the grounding call. Siblings are rejected because a different paragraph was never shown to the model, so a sentence citing it cannot have come from what was supplied: the model is fabricating a plausible-looking reference, which is the most damaging error for a legal assistant. Such sentences are dropped without asking the checker.
@@ -366,9 +422,9 @@ The grounding check needs the whole answer, so it runs after streaming, and it m
 
 ### Open items for tomorrow (the quota resets about 08:00; the evaluation task starts at 08:10)
 
-1. Embed the remaining gold questions (single-text calls kept working after the bulk quota was spent, so this should be possible at any time; if the evaluation job's final query step fails on quota, that is why), then rerun `make calibrate` and `make examples`.
-2. Set the refusal threshold from that data (TODO #7), and add out-of-scope questions to the gold set.
-3. When the evaluation finishes (about three days), check which retrieval method is actually best before treating hybrid as the default.
+1. ~~Embed the remaining gold questions, then rerun `make calibrate`.~~ Done 2026-11-04. `make examples` was not rerun.
+2. ~~Set the refusal threshold from that data (TODO #7).~~ Done 2026-11-04, still provisional. Adding French and German out-of-scope questions is still open.
+3. ~~Check which retrieval method is actually best.~~ Done: hybrid + rerank (Stage 2 results). Vector alone beats plain hybrid, which is worth remembering if the reranker is ever dropped for latency.
 
 ---
 
