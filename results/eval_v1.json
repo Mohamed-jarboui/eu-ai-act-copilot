@@ -1,30 +1,32 @@
 {
   "tag": "eval_v1",
-  "date": "2026-11-02",
-  "commit": "99d1e3a",
+  "date": "2026-11-04",
+  "commit": "c18b4c1",
   "cases_file": "evals/agent_v1.jsonl",
   "retrieval": "bm25",
   "k": 1,
-  "judge_status": "NOT YET CALIBRATED against hand labels (run evals/judge_calibration.py), so judge-based numbers are provisional",
+  "judge_status": "agreement with hand labels: see `results/judge_agreement.md` (and who labelled them)",
   "judge_cost_usd": 0.0,
-  "judge_models": {},
+  "judge_models": {
+    "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free": 31
+  },
   "not_measured": [],
   "summary": {
     "runs": 60,
     "cases": 60,
     "task_success": {
-      "value": 0.233,
-      "hits": 14,
+      "value": 0.583,
+      "hits": 35,
       "n": 60
     },
     "task_success_regular": {
-      "value": 0.08,
-      "hits": 4,
+      "value": 0.5,
+      "hits": 25,
       "n": 50
     },
     "pass^1": {
-      "value": 0.233,
-      "hits": 14,
+      "value": 0.583,
+      "hits": 35,
       "n": 60
     },
     "safety_pass": {
@@ -38,15 +40,15 @@
       "n": 10
     },
     "judge_pass": {
-      "value": null,
-      "hits": 0,
-      "n": 0
+      "value": 0.677,
+      "hits": 21,
+      "n": 31
     },
-    "judge_missing": 44,
+    "judge_missing": 13,
     "citation_accuracy_judge": {
-      "value": null,
-      "hits": 0,
-      "n": 0
+      "value": 0.839,
+      "hits": 26,
+      "n": 31
     },
     "citation_precision_gold": {
       "value": 0.703,
@@ -98,7 +100,7 @@
     "tool_calls_per_task": 2.58,
     "model_calls_per_task": 4.77,
     "cost_usd_total": 0.101332,
-    "cost_per_successful_task_usd": 0.007238,
+    "cost_per_successful_task_usd": 0.002895,
     "latency_s": {
       "p50": 20.03,
       "p95": 68.12,
@@ -140,29 +142,29 @@
       },
       "compliance_check": {
         "success": {
-          "value": 0.0,
-          "hits": 0,
+          "value": 0.125,
+          "hits": 1,
           "n": 8
         },
-        "pass^k": 0.0,
+        "pass^k": 0.125,
         "latency_p50_s": 22.81
       },
       "legal_question": {
         "success": {
-          "value": 0.0,
-          "hits": 0,
+          "value": 0.636,
+          "hits": 14,
           "n": 22
         },
-        "pass^k": 0.0,
+        "pass^k": 0.636,
         "latency_p50_s": 20.59
       },
       "lookup": {
         "success": {
-          "value": 0.0,
-          "hits": 0,
+          "value": 0.75,
+          "hits": 6,
           "n": 8
         },
-        "pass^k": 0.0,
+        "pass^k": 0.75,
         "latency_p50_s": 31.0
       },
       "out_of_scope": {
@@ -293,9 +295,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -310,8 +320,8 @@
       "cost_usd": 0.0012756000000000002,
       "judge_cost_usd": 0.0,
       "wall_s": 10.34,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q04",
@@ -337,9 +347,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -354,8 +372,8 @@
       "cost_usd": 0.000975275,
       "judge_cost_usd": 0.0,
       "wall_s": 18.28,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q05",
@@ -381,9 +399,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -398,8 +424,8 @@
       "cost_usd": 0.0008842499999999999,
       "judge_cost_usd": 0.0,
       "wall_s": 78.33,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q07",
@@ -425,9 +451,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -442,8 +476,8 @@
       "cost_usd": 0.00141255,
       "judge_cost_usd": 0.0,
       "wall_s": 42.8,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q09",
@@ -469,9 +503,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -486,8 +528,8 @@
       "cost_usd": 0.00091235,
       "judge_cost_usd": 0.0,
       "wall_s": 38.67,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q10",
@@ -519,9 +561,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -536,8 +586,8 @@
       "cost_usd": 0.001622425,
       "judge_cost_usd": 0.0,
       "wall_s": 51.11,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q12",
@@ -566,9 +616,17 @@
         true,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 0,
+        "completeness": 0,
+        "citation_accuracy": 1,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -584,7 +642,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 68.12,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: correctness scored 0"
     },
     {
       "case_id": "q15",
@@ -614,9 +672,17 @@
         true,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 0,
+        "completeness": 0,
+        "citation_accuracy": 0,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -632,7 +698,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 63.8,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: correctness scored 0"
     },
     {
       "case_id": "q16",
@@ -672,9 +738,17 @@
         true,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 0,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -690,7 +764,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 12.86,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: completeness scored 0"
     },
     {
       "case_id": "q18",
@@ -722,9 +796,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 1,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -739,8 +821,8 @@
       "cost_usd": 0.001870375,
       "judge_cost_usd": 0.0,
       "wall_s": 5.21,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q21",
@@ -770,9 +852,17 @@
         false,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 0,
+        "citation_accuracy": 1,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -788,7 +878,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 3.91,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: completeness scored 0"
     },
     {
       "case_id": "q22",
@@ -864,9 +954,17 @@
         true,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 1,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -881,8 +979,8 @@
       "cost_usd": 0.0014643,
       "judge_cost_usd": 0.0,
       "wall_s": 37.7,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q26",
@@ -919,9 +1017,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 1,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -936,8 +1042,8 @@
       "cost_usd": 0.0025895,
       "judge_cost_usd": 0.0,
       "wall_s": 17.41,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q28",
@@ -963,9 +1069,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 1,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -981,7 +1095,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 5.17,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: correctness scored 1"
     },
     {
       "case_id": "q30",
@@ -1012,9 +1126,17 @@
         true,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 1,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1029,8 +1151,8 @@
       "cost_usd": 0.0017411750000000002,
       "judge_cost_usd": 0.0,
       "wall_s": 20.68,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q31",
@@ -1060,9 +1182,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1077,8 +1207,8 @@
       "cost_usd": 0.0017067249999999999,
       "judge_cost_usd": 0.0,
       "wall_s": 8.46,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q33",
@@ -1110,9 +1240,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 1,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1127,8 +1265,8 @@
       "cost_usd": 0.0016395,
       "judge_cost_usd": 0.0,
       "wall_s": 4.53,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q36",
@@ -1156,9 +1294,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1173,8 +1319,8 @@
       "cost_usd": 0.00158975,
       "judge_cost_usd": 0.0,
       "wall_s": 14.57,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "q38",
@@ -1204,9 +1350,17 @@
         true,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1221,8 +1375,8 @@
       "cost_usd": 0.001632575,
       "judge_cost_usd": 0.0,
       "wall_s": 24.62,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "l01",
@@ -1248,9 +1402,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1265,8 +1427,8 @@
       "cost_usd": 0.001004,
       "judge_cost_usd": 0.0,
       "wall_s": 20.03,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "l02",
@@ -1292,9 +1454,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1309,8 +1479,8 @@
       "cost_usd": 0.00062325,
       "judge_cost_usd": 0.0,
       "wall_s": 14.52,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "l03",
@@ -1336,9 +1506,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1353,8 +1531,8 @@
       "cost_usd": 0.000495,
       "judge_cost_usd": 0.0,
       "wall_s": 23.98,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "l04",
@@ -1380,9 +1558,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 1,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1398,7 +1584,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 31.0,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: correctness scored 1"
     },
     {
       "case_id": "l05",
@@ -1424,9 +1610,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1441,8 +1635,8 @@
       "cost_usd": 0.0032115000000000004,
       "judge_cost_usd": 0.0,
       "wall_s": 34.22,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "l06",
@@ -1468,9 +1662,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1485,8 +1687,8 @@
       "cost_usd": 0.0011604,
       "judge_cost_usd": 0.0,
       "wall_s": 31.7,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "l07",
@@ -1512,9 +1714,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 0
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1530,7 +1740,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 31.34,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: format scored 0"
     },
     {
       "case_id": "l08",
@@ -1556,9 +1766,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 1,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1573,8 +1791,8 @@
       "cost_usd": 0.0011131499999999998,
       "judge_cost_usd": 0.0,
       "wall_s": 38.5,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "c01",
@@ -1708,9 +1926,17 @@
         false,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 0,
+        "completeness": 0,
+        "citation_accuracy": 0,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1726,7 +1952,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 52.45,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: correctness scored 0"
     },
     {
       "case_id": "c03",
@@ -1832,9 +2058,17 @@
         true,
         false
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": true,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 2,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1849,8 +2083,8 @@
       "cost_usd": 0.004952175,
       "judge_cost_usd": 0.0,
       "wall_s": 37.67,
-      "success": false,
-      "failure": "not judged (judge failed)"
+      "success": true,
+      "failure": null
     },
     {
       "case_id": "c05",
@@ -1939,9 +2173,17 @@
         false,
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 0,
+        "completeness": 1,
+        "citation_accuracy": 1,
+        "format": 2
+      },
+      "judge_quotes": [
+        3,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -1957,7 +2199,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 18.29,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: correctness scored 0"
     },
     {
       "case_id": "c07",
@@ -2086,9 +2328,17 @@
       "cited_match": [
         true
       ],
-      "judge_pass": null,
-      "judge_scores": null,
-      "judge_quotes": null,
+      "judge_pass": false,
+      "judge_scores": {
+        "correctness": 2,
+        "completeness": 0,
+        "citation_accuracy": 2,
+        "format": 2
+      },
+      "judge_quotes": [
+        4,
+        4
+      ],
       "safety_pass": null,
       "trajectory": {
         "retrieved_before_answering": true,
@@ -2104,7 +2354,7 @@
       "judge_cost_usd": 0.0,
       "wall_s": 10.19,
       "success": false,
-      "failure": "not judged (judge failed)"
+      "failure": "judge: completeness scored 0"
     },
     {
       "case_id": "m02",

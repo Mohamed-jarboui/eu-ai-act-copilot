@@ -74,13 +74,13 @@ def main() -> None:
         "",
         *(
             [
-                f"> **Provisional:** {b['judge_missing']} answered runs before and "
-                f"{a['judge_missing']} after have no verdict yet and count as failures, so task "
-                "success, judge pass and citation accuracy are not comparable until both sides "
-                "are judged. The other rows do not depend on the judge.",
+                f"> **Provisional:** {waiting(before)} finished answers before and "
+                f"{waiting(after)} after are still waiting for a verdict and count as failures, "
+                "so task success, judge pass and citation accuracy may still change. The other "
+                "rows do not depend on the judge.",
                 "",
             ]
-            if b["judge_missing"] or a["judge_missing"]
+            if waiting(before) or waiting(after)
             else []
         ),
         "| Metric | Before | After |",
@@ -106,6 +106,11 @@ def main() -> None:
     ]
     OUT.write_text("\n".join(lines), "utf-8")
     print("\n".join(lines))
+
+
+def waiting(report: dict) -> int:
+    """Finished answers with no verdict yet (partial or refused runs are never judged)."""
+    return sum(1 for r in report["runs"] if (r["failure"] or "").startswith("not judged"))
 
 
 def commits(report: dict) -> str:
