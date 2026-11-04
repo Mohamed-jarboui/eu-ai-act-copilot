@@ -24,3 +24,7 @@ data/cache/
 Thumbs.db
 .vscode/
 .idea/
+
+# Evaluation runs made in CI (uploaded as an artifact instead)
+results/eval_ci_pr.*
+results/runs/eval_ci_pr*

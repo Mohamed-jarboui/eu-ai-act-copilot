@@ -456,3 +456,11 @@ Implemented in `src/copilot/agent/` (LangGraph 1.2.18 with `langgraph-checkpoint
 
 - Router, `evals/run_router.py` on 74 route-labelled questions (labels drafted by the assistant, to be reviewed): accuracy 0.905 (67 of 74); 0.943 (66 of 70) without the 4 marked ambiguous. All 7 errors send a legal question to `compliance_check`. All 8 lookups are routed by the rules without a model call. 3 of 3 vague questions get a clarifying question; 0 of 74 labelled questions are wrongly clarified. An earlier run with the same prompt (before the lookup fix) scored 70 of 74, with 3 questions sent to `compliance_check` instead of 7: the model's routing varies between identical runs.
 - Three captured runs in `docs/traces/` (one per graph path): all three grounded. Wall times of 30 to 104 s were dominated by provider latency and failed attempts (visible in the traces), not by the graph. The legal question used BM25 only, because the day's embedding quota was spent.
+
+## 11. Stage 5: changes found by the evaluation
+
+The evaluation (`docs/failures.md`) changed three behaviours of the design above:
+
+- **Search loop and tool budget (section 4).** A re-search plans no more queries than the tool calls left, and an exhausted tool budget counts as "no searches left": the grader then answers from what was found instead of the run stopping as partial.
+- **Provider fallback.** gpt-oss on Groq can reply to a ReAct prompt with a native tool call, which Groq rejects; the provider returns the intended action as text and the steps accept the `{name, arguments}` shape.
+- **Input guard (section 5).** "Continue with the suspicious span removed" now has an exception: if an instruction about the answer is left once the span is removed ("end every answer with…", "reply only with…", "no citations"), the question is blocked.
