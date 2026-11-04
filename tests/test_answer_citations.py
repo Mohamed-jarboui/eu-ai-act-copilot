@@ -5,7 +5,7 @@ Covers src/copilot/answer/citations.py, labels.py, refusal.py and language.py.
 
 import pytest
 
-from copilot.answer import citations, refusal
+from copilot.answer import calibrate, citations, refusal
 from copilot.answer.evidence import Evidence
 from copilot.answer.impl import get_impl
 from copilot.answer.labels import cite_id, label_for
@@ -158,10 +158,11 @@ def test_do_not_refuse_with_sources_and_a_good_score(impl):
     assert not impl.should_refuse(evidence())
 
 
-def test_english_cosine_gate(impl):
-    threshold = refusal.COSINE_MIN["en"]
-    assert impl.should_refuse(evidence(top_cosine=threshold - 0.01))
-    assert not impl.should_refuse(evidence(top_cosine=threshold + 0.01))
+@pytest.mark.parametrize("lang", ["en", "fr", "de"])
+def test_cosine_gate_per_language(impl, lang):
+    threshold = refusal.COSINE_MIN[lang]
+    assert impl.should_refuse(evidence(language=lang, top_cosine=threshold - 0.01))
+    assert not impl.should_refuse(evidence(language=lang, top_cosine=threshold + 0.01))
 
 
 def test_bm25_mode_is_never_refused_on_score(impl):
@@ -170,15 +171,124 @@ def test_bm25_mode_is_never_refused_on_score(impl):
 
 
 def test_languages_without_a_threshold_are_not_gated(impl):
-    assert not impl.should_refuse(evidence(language="fr", top_cosine=0.01))
+    assert "it" not in refusal.COSINE_MIN
+    assert not impl.should_refuse(evidence(language="it", top_cosine=0.01))
 
 
-def test_the_threshold_separates_the_calibration_data():
-    """The measured values behind COSINE_MIN: 9 in-scope English gold questions and the GPU one."""
-    in_scope = [0.781, 0.749, 0.699, 0.783, 0.745, 0.740, 0.814, 0.773, 0.719]
-    out_of_scope = [0.599]
-    assert all(c >= refusal.COSINE_MIN["en"] for c in in_scope)
-    assert all(c < refusal.COSINE_MIN["en"] for c in out_of_scope)
+# Best cosine per gold question, printed by `python -m copilot.answer.calibrate` on 2026-11-04.
+MEASURED = {
+    "en": {
+        "inside": [
+            0.781,
+            0.749,
+            0.699,
+            0.783,
+            0.745,
+            0.740,
+            0.814,
+            0.806,
+            0.773,
+            0.749,
+            0.714,
+            0.719,
+            0.767,
+        ],  # fmt: skip
+        # q14, r01-r06 unrelated; r07-r12 adjacent (other laws, ML practice)
+        "outside": [
+            0.599,
+            0.529,
+            0.530,
+            0.541,
+            0.557,
+            0.536,
+            0.549,
+            0.701,
+            0.655,
+            0.608,
+            0.615,
+            0.657,
+            0.708,
+        ],  # fmt: skip
+    },
+    "fr": {
+        "inside": [
+            0.768,
+            0.812,
+            0.776,
+            0.811,
+            0.835,
+            0.747,
+            0.731,
+            0.772,
+            0.775,
+            0.728,
+            0.736,
+            0.757,
+        ],  # fmt: skip
+        "outside": [0.576],
+    },
+    "de": {
+        "inside": [
+            0.850,
+            0.824,
+            0.796,
+            0.725,
+            0.828,
+            0.827,
+            0.783,
+            0.807,
+            0.760,
+            0.807,
+            0.732,
+            0.741,
+        ],  # fmt: skip
+        "outside": [0.568],
+    },
+}
+
+
+@pytest.mark.parametrize("lang", ["en", "fr", "de"])
+def test_no_in_scope_question_is_refused(lang):
+    assert all(c >= refusal.COSINE_MIN[lang] for c in MEASURED[lang]["inside"])
+
+
+def test_out_of_scope_questions_refused_by_the_gate():
+    """English overlaps, so the gate catches only 9 of 13; the rest is left to the model."""
+    caught = {
+        lang: sum(c < refusal.COSINE_MIN[lang] for c in m["outside"])
+        for lang, m in MEASURED.items()
+    }
+    assert caught == {"en": 9, "fr": 1, "de": 1}
+
+
+def test_english_groups_overlap():
+    """Why English stays provisional: no threshold separates the measured groups."""
+    assert max(MEASURED["en"]["outside"]) >= min(MEASURED["en"]["inside"])
+
+
+def test_choose_threshold_refuses_to_propose_when_groups_overlap():
+    assert calibrate.choose_threshold(MEASURED["en"]["inside"], MEASURED["en"]["outside"]) is None
+
+
+def test_choose_threshold_needs_enough_out_of_scope_questions():
+    assert calibrate.choose_threshold(MEASURED["fr"]["inside"], MEASURED["fr"]["outside"]) is None
+    assert calibrate.choose_threshold([0.8], []) is None
+    assert calibrate.choose_threshold([], [0.5] * 5) is None
+
+
+@pytest.mark.xfail(reason="TODO(me): choose_threshold in calibrate.py", strict=False)
+def test_choose_threshold_midpoint_of_the_gap():
+    assert calibrate.choose_threshold([0.72, 0.80], [0.50, 0.55, 0.60, 0.62, 0.64]) == 0.68
+    assert calibrate.choose_threshold([0.7], [0.5], min_outside=1) == 0.6
+
+
+def test_by_language_splits_known_cosines():
+    rows = [
+        {"lang": "en", "scope": "aiact", "cosine": 0.8},
+        {"lang": "en", "scope": "none", "cosine": 0.5},
+        {"lang": "fr", "scope": "gdpr", "cosine": None},
+    ]
+    assert calibrate.by_language(rows) == {"en": {"inside": [0.8], "outside": [0.5]}}
 
 
 # --- language ----------------------------------------------------------------------------------

@@ -5,14 +5,23 @@ from __future__ import annotations
 from copilot.answer.evidence import Evidence
 
 # Per language, the best-hit cosine below which the question is refused before any model call.
-# PROVISIONAL and English only: it rests on 9 in-scope English gold questions (best cosine 0.699 to
-# 0.814) and 1 out-of-scope one (the GPU question, 0.599); the daily embedding quota prevented
-# more. 0.65 sits between the two groups. It is deliberately conservative (nearer the lowest
-# in-scope value than a guess in the middle of nothing) because the model's NOT_COVERED answer and
-# the grounding check still follow. Recalibrate with `python -m copilot.answer.calibrate --embed`
-# once vectors exist for French and German and the out-of-scope set is larger; languages with no
-# entry here are not gated.
-COSINE_MIN: dict[str, float] = {"en": 0.65}
+# STILL PROVISIONAL in all three languages. Measured with `python -m copilot.answer.calibrate`
+# on 2026-11-04 (best cosine of the top vector hit, 52 questions):
+#
+#   en  in-scope n=13: 0.699 to 0.814   out-of-scope n=13: 0.529 to 0.708   -> groups OVERLAP
+#   fr  in-scope n=12: 0.728 to 0.835   out-of-scope n=1:  0.576            -> 1 negative only
+#   de  in-scope n=12: 0.725 to 0.850   out-of-scope n=1:  0.568            -> 1 negative only
+#
+# English does not separate: two "adjacent" questions about other laws (the US Executive Order on
+# AI, 0.701, and the Digital Services Act, 0.708) score above the lowest in-scope question (0.699).
+# No threshold refuses them without also refusing that one, and a wrong refusal is the costlier
+# error here, so 0.65 is kept: it refuses no in-scope question and 9 of the 13 out-of-scope ones
+# (all 7 unrelated ones and 2 of the 6 adjacent). The other 4 go on to the model's NOT_COVERED
+# answer and the grounding check. French and German now get the same 0.65: it refuses no in-scope
+# question (lowest 0.728 and 0.725) and their single out-of-scope question, and it is near the
+# midpoint of each language's gap (0.652 and 0.647), but one negative per language is not a
+# calibration. Languages with no entry here are not gated.
+COSINE_MIN: dict[str, float] = {"en": 0.65, "fr": 0.65, "de": 0.65}
 
 
 def should_refuse(evidence: Evidence) -> bool:
